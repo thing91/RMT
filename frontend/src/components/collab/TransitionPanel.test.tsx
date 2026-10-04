@@ -1,7 +1,15 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import type { ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { SubjectWorkflow } from '../../api/types'
 import TransitionPanel from './TransitionPanel'
+
+// StatusBadge reads the organization's status palette through React Query.
+function render(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { enabled: false } } })
+  return rtlRender(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
+}
 
 const workflow: SubjectWorkflow = {
   state: 'review',

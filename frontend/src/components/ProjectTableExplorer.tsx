@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useT } from '../i18n'
 import { useSearchParams } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import {
@@ -46,6 +47,8 @@ interface Props {
   projectId: string
   orgId: string
   compact?: boolean
+  /** Edit mode: double-click a cell to edit it, structure toolbar shown. */
+  editMode?: boolean
 }
 
 /** Splits the search box into free-text terms and an optional `type:` token
@@ -90,7 +93,8 @@ function itemLinkSummaries(
     })
 }
 
-export default function ProjectTableExplorer({ projectId, orgId, compact }: Props) {
+export default function ProjectTableExplorer({ projectId, orgId, compact, editMode = false }: Props) {
+  const t = useT()
   const { data: items, isLoading } = useProjectItems(projectId)
   const { data: itemTypes } = useItemTypes(orgId)
   const { data: linkTypes } = useLinkTypes(orgId)
@@ -305,6 +309,27 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
     JSON.stringify(columns.map((c) => c.attribute_key)) !==
       JSON.stringify((activeView?.columns ?? []).map((c) => c.attribute_key))
 
+  const searchBox = (
+            <div className="relative">
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('Search key, title, description… (type:Requirement to filter by type)')}
+                className="w-80 max-w-full rounded-md border border-slate-300 py-1 pl-2 pr-6 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  title={t('Clear search')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+  )
+
   return (
     <div className={compact ? 'flex h-full flex-col' : 'flex h-full'}>
       <div className={`flex-1 overflow-auto ${compact ? 'p-3' : ''}`}>
@@ -337,31 +362,16 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
           </div>
         )}
 
-        <ItemStructureToolbar
-          selectedItem={selectedItem}
-          allItems={items ?? []}
-          itemTypes={itemTypes}
-          extra={
-            <div className="relative">
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search key, title, description… (type:Requirement to filter by type)"
-                className="w-80 max-w-full rounded-md border border-slate-300 py-1 pl-2 pr-6 text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  title="Clear search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          }
-        />
+        {editMode ? (
+          <ItemStructureToolbar
+            selectedItem={selectedItem}
+            allItems={items ?? []}
+            itemTypes={itemTypes}
+            extra={searchBox}
+          />
+        ) : (
+          <div className="mb-3">{searchBox}</div>
+        )}
 
         {activeType && (
           <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
@@ -524,6 +534,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
                       colSpan={isStructural ? 3 + Math.max(orderedColumns.length, 1) : 1}
                       onDoubleClick={(e) => {
                         e.stopPropagation()
+                        if (!editMode) return
                         startEditingText(item, 'title')
                       }}
                     >
@@ -573,6 +584,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
                               className="px-3 py-2 text-slate-600"
                               onDoubleClick={(e) => {
                                 e.stopPropagation()
+                                if (!editMode) return
                                 setSelectedId(item.id)
                                 if (c.key === 'status' && item.has_workflow) {
                                   setEditError('Status follows the workflow — use the transitions in the item details.')
@@ -624,6 +636,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
                             className="px-3 py-2 text-slate-500"
                             onDoubleClick={(e) => {
                               e.stopPropagation()
+                              if (!editMode) return
                               startEditingText(item, 'description')
                             }}
                           >
@@ -714,6 +727,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
           onClose={() => setDetailsId(null)}
           orgId={orgId}
           compact={compact}
+          editMode={editMode}
         />
       )}
     </div>

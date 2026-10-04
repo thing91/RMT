@@ -4,6 +4,7 @@ import type { TransitionInput } from '../../api/collabHooks'
 import type { SubjectWorkflow, TransitionOption } from '../../api/types'
 import Modal, { btn, input } from './Modal'
 import StatusBadge from './StatusBadge'
+import { useT } from '../../i18n'
 
 interface Props {
   workflow: SubjectWorkflow | undefined
@@ -24,6 +25,7 @@ interface Props {
  * user may not run are shown disabled with the reasons as a tooltip, so
  * it's clear *why* something can't happen yet. */
 export default function TransitionPanel({ workflow, run, extraFields, compact, disabled }: Props) {
+  const tr = useT()
   const [active, setActive] = useState<TransitionOption | null>(null)
   if (!workflow) return null
   const current = workflow.states.find((s) => s.key === workflow.state)
@@ -37,7 +39,7 @@ export default function TransitionPanel({ workflow, run, extraFields, compact, d
         <button
           key={t.key}
           disabled={!t.allowed || disabled}
-          title={t.allowed ? `${t.label} → ${t.to_label}` : t.reasons.join('\n')}
+          title={t.allowed ? `${tr(t.label)} → ${tr(t.to_label)}` : t.reasons.join('\n')}
           onClick={() => setActive(t)}
           className={`rounded-md border px-2 py-0.5 text-xs font-medium ${
             t.allowed && !disabled
@@ -45,7 +47,7 @@ export default function TransitionPanel({ workflow, run, extraFields, compact, d
               : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
           }`}
         >
-          {t.label}
+          {tr(t.label)}
           {t.requires_signature && ' ✍'}
         </button>
       ))}
@@ -56,7 +58,7 @@ export default function TransitionPanel({ workflow, run, extraFields, compact, d
   )
 }
 
-function TransitionDialog({
+export function TransitionDialog({
   transition,
   onClose,
   run,
@@ -67,6 +69,7 @@ function TransitionDialog({
   run: Props['run']
   extraFields: Props['extraFields']
 }) {
+  const t = useT()
   const [comment, setComment] = useState('')
   const [password, setPassword] = useState('')
   const [values, setValues] = useState<Record<string, unknown>>({})
@@ -87,7 +90,7 @@ function TransitionDialog({
       onClose()
     } catch (err) {
       const d = apiErrorDetail(err)
-      setError(d?.message ?? apiErrorMessage(err, 'Could not run this transition.'))
+      setError(d?.message ?? apiErrorMessage(err, t('Could not run this transition.')))
       setReasons(
         (d?.reasons ?? []).filter(
           (r) => !['signature_required', 'signature_failed', 'comment_required', 'wrong_state'].includes(r),
@@ -103,15 +106,15 @@ function TransitionDialog({
 
   return (
     <Modal
-      title={`${transition.label} → ${transition.to_label}`}
+      title={`${t(transition.label)} → ${t(transition.to_label)}`}
       onClose={onClose}
       footer={
         <>
           <button className={btn.secondary} onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </button>
           <button className={btn.primary} disabled={busy || missingComment || missingPassword} onClick={submit}>
-            {transition.requires_signature ? 'Sign & confirm' : 'Confirm'}
+            {transition.requires_signature ? t('Sign & confirm') : t('Confirm')}
           </button>
         </>
       }
@@ -119,7 +122,7 @@ function TransitionDialog({
       <div className="space-y-3 text-sm">
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-slate-500">
-            {transition.requires_comment ? 'Justification (required)' : 'Comment (optional)'}
+            {transition.requires_comment ? t('Justification (required)') : t('Comment (optional)')}
           </span>
           <textarea autoFocus rows={3} className={input} value={comment} onChange={(e) => setComment(e.target.value)} />
         </label>
@@ -127,7 +130,7 @@ function TransitionDialog({
         {transition.requires_signature && (
           <label className="block rounded-md border border-amber-200 bg-amber-50 p-3">
             <span className="mb-1 block text-xs font-medium text-amber-800">
-              Electronic signature — re-enter your password to sign this step
+              {t('Electronic signature — re-enter your password to sign this step')}
             </span>
             <input
               type="password"
@@ -137,7 +140,7 @@ function TransitionDialog({
               autoComplete="current-password"
             />
             <span className="mt-1 block text-[11px] text-amber-700">
-              Your signature, its meaning and a hash of the exact content are recorded permanently.
+              {t('Your signature, its meaning and a hash of the exact content are recorded permanently.')}
             </span>
           </label>
         )}

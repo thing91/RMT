@@ -13,6 +13,7 @@ from app.api.v1 import (
     item_types,
     items,
     library,
+    workspace,
     link_types,
     links,
     locks,
@@ -58,3 +59,4 @@ api_router.include_router(suggestions.router)
 api_router.include_router(library.router)
 api_router.include_router(roadmap.router)
 api_router.include_router(events.router)
+api_router.include_router(workspace.router)

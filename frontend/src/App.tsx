@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import HomeLayout from './layouts/HomeLayout'
 import ProjectLayout from './layouts/ProjectLayout'
+import AdminPage from './pages/AdminPage'
+import BaselinesPage from './pages/BaselinesPage'
 import DocumentView from './pages/DocumentView'
 import GlossaryAdmin from './pages/GlossaryAdmin'
 import GraphView from './pages/GraphView'
@@ -8,16 +10,12 @@ import Home from './pages/Home'
 import IdeaPage from './pages/IdeaPage'
 import ApplicabilityPage from './pages/ApplicabilityPage'
 import ChangesPage from './pages/ChangesPage'
-import ItemTypesAdmin from './pages/ItemTypesAdmin'
 import LibraryReleasesPage from './pages/LibraryReleasesPage'
-import LinkTypesAdmin from './pages/LinkTypesAdmin'
-import OrganizationSettings from './pages/OrganizationSettings'
 import ParametersAdmin from './pages/ParametersAdmin'
 import ProjectDetail from './pages/ProjectDetail'
 import ReviewDetailPage from './pages/ReviewDetailPage'
 import ReviewsPage from './pages/ReviewsPage'
 import RoadmapPage from './pages/RoadmapPage'
-import StandardsAdmin from './pages/StandardsAdmin'
 import SuggestionsPage from './pages/SuggestionsPage'
 import TableView from './pages/TableView'
 import TraceabilityMatrixPage from './pages/TraceabilityMatrix'
@@ -28,12 +26,10 @@ export default function App() {
     <Routes>
       <Route element={<HomeLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/admin/item-types" element={<ItemTypesAdmin />} />
-        <Route path="/admin/link-types" element={<LinkTypesAdmin />} />
-        <Route path="/admin/workflows" element={<WorkflowsAdmin />} />
-        <Route path="/admin/organization" element={<OrganizationSettings />} />
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/:tab" element={<AdminPage />} />
+        <Route path="/standards" element={<Navigate to="/admin/standards" replace />} />
         <Route path="/glossary" element={<GlossaryAdmin />} />
-        <Route path="/standards" element={<StandardsAdmin />} />
         <Route path="/roadmap" element={<RoadmapPage />} />
         <Route path="/roadmap/ideas/:ideaId" element={<IdeaPage />} />
       </Route>
@@ -43,6 +39,7 @@ export default function App() {
         <Route path="matrix" element={<TraceabilityMatrixPage />} />
         <Route path="graph" element={<GraphView />} />
         <Route path="parameters" element={<ParametersAdmin />} />
+        <Route path="baselines" element={<BaselinesPage />} />
         <Route path="reviews" element={<ReviewsPage />} />
         <Route path="reviews/:reviewId" element={<ReviewDetailPage />} />
         <Route path="suggestions" element={<SuggestionsPage />} />
