@@ -29,6 +29,10 @@ export default function HomeLayout() {
             <NavLink to="/standards" className={navLinkClass}>
               Standards Library
             </NavLink>
+            <div className="my-2 border-t border-slate-200" />
+            <NavLink to="/roadmap" className={navLinkClass}>
+              Roadmap &amp; ideas
+            </NavLink>
           </nav>
         </aside>
         <main className="flex-1 overflow-auto">

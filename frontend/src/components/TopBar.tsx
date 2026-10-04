@@ -16,6 +16,9 @@ export default function TopBar({ children }: { children?: ReactNode }) {
         <Link to="/glossary" className="text-sm font-medium text-slate-500 hover:text-blue-600">
           Glossary
         </Link>
+        <Link to="/roadmap" className="text-sm font-medium text-slate-500 hover:text-blue-600">
+          Roadmap
+        </Link>
         <NotificationBell />
         <AuthBar />
       </div>

@@ -5,6 +5,7 @@ import DocumentView from './pages/DocumentView'
 import GlossaryAdmin from './pages/GlossaryAdmin'
 import GraphView from './pages/GraphView'
 import Home from './pages/Home'
+import IdeaPage from './pages/IdeaPage'
 import ApplicabilityPage from './pages/ApplicabilityPage'
 import ChangesPage from './pages/ChangesPage'
 import ItemTypesAdmin from './pages/ItemTypesAdmin'
@@ -14,6 +15,7 @@ import ParametersAdmin from './pages/ParametersAdmin'
 import ProjectDetail from './pages/ProjectDetail'
 import ReviewDetailPage from './pages/ReviewDetailPage'
 import ReviewsPage from './pages/ReviewsPage'
+import RoadmapPage from './pages/RoadmapPage'
 import StandardsAdmin from './pages/StandardsAdmin'
 import SuggestionsPage from './pages/SuggestionsPage'
 import TableView from './pages/TableView'
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="/admin/workflows" element={<WorkflowsAdmin />} />
         <Route path="/glossary" element={<GlossaryAdmin />} />
         <Route path="/standards" element={<StandardsAdmin />} />
+        <Route path="/roadmap" element={<RoadmapPage />} />
+        <Route path="/roadmap/ideas/:ideaId" element={<IdeaPage />} />
       </Route>
 
       <Route path="/projects/:projectId" element={<ProjectLayout />}>
