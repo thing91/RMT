@@ -264,6 +264,7 @@ Implements `wymagania-wspolbieznosc-i-workflow.md` (the plan and its status
 are in `docs/PLAN-wdrozenia.md`). Backend tests: `cd backend &&
 .venv/Scripts/python.exe -m pytest` (runs against an isolated `rmt_test`
 schema in the dev database; `pip install -r requirements-dev.txt` first).
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library).
 
 - **Permissions** — every project role maps to named permissions
   (`item.edit`, `structure.edit`, `lock.override`, `suggestion.resolve`,
@@ -298,7 +299,6 @@ schema in the dev database; `pip install -r requirements-dev.txt` first).
   Change-managed (default for requirements), Regulated (e-signature,
   author can't approve own requirement, no open comments/Major
   suggestions, verification tied to passing linked tests) and Test case.
-  Each transition has roles, conditions and actions; edit as JSON.
   The status attribute's values are generated from the workflow states, and
   status can only change through transitions.
 - **Change management** — Approved → "Request change" creates a change
@@ -320,7 +320,26 @@ schema in the dev database; `pip install -r requirements-dev.txt` first).
   reason. Suggestions go Outdated when the field changes underneath them;
   accepting one on an Approved item raises a change request and applies it
   once the item is editable. Project-wide list + Excel RID export.
-- **Notifications** — the bell in the top bar (polls every 30 s) plus email
+- **Who is editing right now** — a round avatar with the person's initials
+  (stable color per person, ✎ for an item, ⇅ for the document structure)
+  appears next to every requirement someone is editing — tree, table and
+  document views — and next to every document someone is working in
+  (sidebar, project home, view header). Hover for who and since when.
+  Driven by a live Server-Sent Events stream (`GET /api/v1/events`), so it
+  appears and disappears within a second; expired leases are swept every
+  30 s. (The stream is per process — a multi-worker deployment would need
+  a shared broker such as Postgres LISTEN/NOTIFY.)
+- **Organization settings** (`/admin/organization`, org admins) — lock
+  timeouts, separation-of-duties switches, and the role → permission
+  matrix (grant/revoke per role, defaults marked).
+- **Schema is org-admin only** — item types, link types, glossary and
+  standards can only be changed by an organization admin now.
+- **Key prefixes** — ⚙ Project settings → General: an optional prefix for
+  new item keys (`GENSAT-SYS-001`); libraries get one by default.
+- **ReqIF for documents** — Views → "ReqIF" exports the open document,
+  "Import…" appends a ReqIF specification (hierarchy → sections, leaves →
+  requirements, attributes matched by name).
+- **Notifications** — the bell in the top bar (pushed live) plus email
   for status changes, comments, mentions, suggestions, review invites, lock
   overrides; "☆ Watch" any item.
 - **Generic requirements library** — create a project of kind "Generic
@@ -358,12 +377,6 @@ schema in the dev database; `pip install -r requirements-dev.txt` first).
 - **Auth is dev-mode by default** (see "Logging in" above) — no MFA/SSO,
   and granting/revoking project access (`POST/DELETE .../access`) has no
   admin-approval queue (§13.5 is explicitly Phase 3).
-- **Org admin exists but doesn't gate the schema yet.** Workflows, role
-  permissions, the roadmap and library releases are gated by org-level
-  permissions, but *writing* item types/link types/standards/glossary is
-  still open to anyone logged in (item/link types even anonymously), as
-  before — switching those to `org.admin` would change existing behavior,
-  so it's left for a deliberate decision.
 - **Git sync is local-only.** No push to a GitLab remote, no inbound
   webhook receiver — both need a real GitLab instance to build/test
   against. Deleting a Section also only removes its own YAML file, not its
@@ -378,20 +391,19 @@ schema in the dev database; `pip install -r requirements-dev.txt` first).
   (§8.2); XLSX and HTML both work today. Export is synchronous (no job
   queue) since it's fast enough for a single document — revisit before
   real project sizes.
-- **Workflow/lock edges.** Lock expiry is lazy: "notify me when free"
-  fires on an explicit release or override, not when a lease silently
-  expires. Lock and tree state is refreshed by polling (15–20 s), not
-  pushed. Workflow conditions/actions are a fixed code registry
-  (`app/services/workflow_engine.py`), so a new kind of rule is code, not
-  configuration. Link edits don't create item versions. Real-time co-editing
-  (Yjs) is out of scope, as the spec says.
+- **Workflow/lock edges.** Workflow conditions/actions are a fixed code
+  registry (`app/services/workflow_engine.py`), so a new kind of rule is
+  code, not configuration. Link edits don't create item versions. Live
+  events are in-process (one uvicorn worker). Real-time co-editing (Yjs) is
+  out of scope, as the spec says.
 - **Migrations from scratch were verified** (empty schema → `alembic
   upgrade head` → `app.seed`, and a pre-workflow database with legacy
   status values). The workflow data migration is plain SQL; it only imports
   the workflow templates (pure data), so changing a template later doesn't
   rewrite history but does change what a *fresh* migration would insert.
-- **ReqIF is export-only** and covers the applicability matrix, not
-  documents; ReqIF import isn't built.
+- **ReqIF import is one-way and additive** — it appends; it doesn't update
+  previously imported items by ReqIF identifier, and relations
+  (SPEC-RELATIONS) aren't imported as links yet.
 - **Parameters have no unit conversion** (Nm vs. N·m vs. lb·ft, as the
   brief itself flags). Baselines now freeze parameter values, but not which
   standard version was cited, and exports don't yet render "as of baseline

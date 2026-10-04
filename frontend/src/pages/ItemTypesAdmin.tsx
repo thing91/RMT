@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
+import { useIsOrgAdmin } from '../api/collabHooks'
 import {
   useCreateAttribute,
   useCreateItemType,
@@ -244,6 +245,7 @@ function NewAttributeForm({ itemType }: { itemType: ItemType }) {
 }
 
 export default function ItemTypesAdmin() {
+  const orgAdmin = useIsOrgAdmin()
   const { org } = useOrg()
   const { data: itemTypes, isLoading } = useItemTypes(org?.id)
   const deprecateAttribute = useDeprecateAttribute()
@@ -254,7 +256,12 @@ export default function ItemTypesAdmin() {
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-slate-800">Item Types</h1>
-        <NewItemTypeForm orgId={org.id} />
+        {!orgAdmin && (
+          <p className="mb-4 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-500">
+            Read-only — only an organization admin can change this organization-wide data.
+          </p>
+        )}
+        {orgAdmin && <NewItemTypeForm orgId={org.id} />}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -313,7 +320,7 @@ export default function ItemTypesAdmin() {
                 {itemType.attributes
                   .filter((a) => a.key === 'status' && a.data_type === 'enum')
                   .map((a) => <StatusWorkflowFlags key={a.id} itemType={itemType} attr={a} />)}
-                <NewAttributeForm itemType={itemType} />
+                {orgAdmin && <NewAttributeForm itemType={itemType} />}
               </>
             )}
           </div>

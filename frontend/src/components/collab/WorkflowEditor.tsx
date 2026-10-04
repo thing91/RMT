@@ -4,6 +4,7 @@ import { useWorkflowCatalog, useWorkflowTemplates, type WorkflowSpecInput } from
 import type { WorkflowDefinition, WorkflowState, WorkflowTransition } from '../../api/types'
 import { btn } from './Modal'
 import StatusBadge from './StatusBadge'
+import WorkflowVisualEditor from './WorkflowVisualEditor'
 
 /** Shows one workflow (states + transitions) and lets an admin switch to a
  * template or edit the definition as JSON. Server-side validation (unknown
@@ -21,7 +22,7 @@ export default function WorkflowEditor({
 }) {
   const { data: templates } = useWorkflowTemplates()
   const { data: catalog } = useWorkflowCatalog()
-  const [mode, setMode] = useState<'view' | 'json'>('view')
+  const [mode, setMode] = useState<'view' | 'visual' | 'json'>('view')
   const [json, setJson] = useState('')
   const [template, setTemplate] = useState('')
   const [errors, setErrors] = useState<string[]>([])
@@ -84,9 +85,21 @@ export default function WorkflowEditor({
             Apply
           </button>
           <span className="text-slate-300">|</span>
-          <button className={btn.ghost} onClick={() => setMode(mode === 'json' ? 'view' : 'json')}>
-            {mode === 'json' ? 'Back to overview' : 'Edit as JSON…'}
-          </button>
+          {mode !== 'view' && (
+            <button className={btn.ghost} onClick={() => setMode('view')}>
+              Back to overview
+            </button>
+          )}
+          {mode !== 'visual' && (
+            <button className={btn.ghost} onClick={() => setMode('visual')} disabled={!definition}>
+              Edit…
+            </button>
+          )}
+          {mode !== 'json' && (
+            <button className={btn.ghost} onClick={() => setMode('json')}>
+              Edit as JSON…
+            </button>
+          )}
           {extraActions}
           {saved && <span className="text-green-700">Saved.</span>}
         </div>
@@ -98,7 +111,17 @@ export default function WorkflowEditor({
           ))}
         </ul>
       )}
-      {mode === 'json' ? (
+      {mode === 'visual' && definition ? (
+        <WorkflowVisualEditor
+          initial={{
+            name: definition.name,
+            states: definition.states,
+            transitions: definition.transitions,
+            settings: definition.settings,
+          }}
+          onSave={(draft) => save(draft)}
+        />
+      ) : mode === 'json' ? (
         <div className="space-y-2">
           <textarea
             className="h-96 w-full rounded-md border border-slate-300 p-2 font-mono text-xs"

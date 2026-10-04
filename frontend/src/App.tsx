@@ -11,6 +11,7 @@ import ChangesPage from './pages/ChangesPage'
 import ItemTypesAdmin from './pages/ItemTypesAdmin'
 import LibraryReleasesPage from './pages/LibraryReleasesPage'
 import LinkTypesAdmin from './pages/LinkTypesAdmin'
+import OrganizationSettings from './pages/OrganizationSettings'
 import ParametersAdmin from './pages/ParametersAdmin'
 import ProjectDetail from './pages/ProjectDetail'
 import ReviewDetailPage from './pages/ReviewDetailPage'
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/admin/item-types" element={<ItemTypesAdmin />} />
         <Route path="/admin/link-types" element={<LinkTypesAdmin />} />
         <Route path="/admin/workflows" element={<WorkflowsAdmin />} />
+        <Route path="/admin/organization" element={<OrganizationSettings />} />
         <Route path="/glossary" element={<GlossaryAdmin />} />
         <Route path="/standards" element={<StandardsAdmin />} />
         <Route path="/roadmap" element={<RoadmapPage />} />

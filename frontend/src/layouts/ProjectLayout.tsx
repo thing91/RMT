@@ -3,6 +3,7 @@ import { NavLink, Outlet, useParams, useSearchParams } from 'react-router-dom'
 import { useDocumentGroups, useDocuments, useItemTypes, useOrg, useProject, useTableViews } from '../api/hooks'
 import DocumentToc from '../components/DocumentToc'
 import DocumentWorkflowModal from '../components/DocumentWorkflowModal'
+import ReqifImportModal from '../components/collab/ReqifImportModal'
 import TopBar from '../components/TopBar'
 import { groupDocuments } from '../documents/groupDocuments'
 import { ItemClipboardProvider } from '../structure/ItemClipboardContext'
@@ -49,6 +50,7 @@ export default function ProjectLayout() {
     return isSidebarTab(stored) ? stored : 'documents'
   })
   const [workflowOpen, setWorkflowOpen] = useState(false)
+  const [reqifOpen, setReqifOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0')
@@ -197,6 +199,19 @@ export default function ProjectLayout() {
                                 >
                                   Export HTML
                                 </a>
+                                <a
+                                  href={`/api/v1/documents/${documentId}/export.reqif`}
+                                  className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                                >
+                                  ReqIF
+                                </a>
+                                <button
+                                  onClick={() => setReqifOpen(true)}
+                                  className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                                  title="Import a ReqIF file into this document"
+                                >
+                                  Import…
+                                </button>
                               </div>
                               <label className="mt-1 flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm text-slate-600">
                                 <input type="checkbox" checked={splitOn} onChange={toggleSplit} />
@@ -292,6 +307,7 @@ export default function ProjectLayout() {
         </main>
       </div>
 
+      {reqifOpen && documentId && <ReqifImportModal documentId={documentId} onClose={() => setReqifOpen(false)} />}
       {workflowOpen && documentId && org && (
         <DocumentWorkflowModal
           documentId={documentId}

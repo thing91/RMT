@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { apiErrorMessage } from '../api/client'
+import { useIsOrgAdmin } from '../api/collabHooks'
 import {
   useCreateLocator,
   useCreateStandard,
@@ -170,6 +171,7 @@ function StandardCard({ source, allSources }: { source: ReferenceSource; allSour
 }
 
 export default function StandardsAdmin() {
+  const orgAdmin = useIsOrgAdmin()
   const { org } = useOrg()
   const { data: standards, isLoading } = useStandards(org?.id)
   const { data: report } = useStandardsConsistency(org?.id)
@@ -180,7 +182,12 @@ export default function StandardsAdmin() {
     <div className="p-6">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-slate-800">Standards Library</h1>
-        <NewStandardForm orgId={org.id} />
+        {!orgAdmin && (
+          <p className="mb-4 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-500">
+            Read-only — only an organization admin can change this organization-wide data.
+          </p>
+        )}
+        {orgAdmin && <NewStandardForm orgId={org.id} />}
       </div>
       <p className="mb-4 max-w-2xl text-sm text-slate-500">
         Org-wide (§5.4) — cite a clause from any item's description with{' '}

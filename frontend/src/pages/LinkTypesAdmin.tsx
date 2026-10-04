@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { apiErrorMessage } from '../api/client'
+import { useIsOrgAdmin } from '../api/collabHooks'
 import { useCreateLinkType, useItemTypes, useLinkTypes, useOrg } from '../api/hooks'
 
 function TypeMultiSelect({
@@ -145,6 +146,7 @@ function NewLinkTypeForm({ orgId, contentTypes }: { orgId: string; contentTypes:
 }
 
 export default function LinkTypesAdmin() {
+  const orgAdmin = useIsOrgAdmin()
   const { org } = useOrg()
   const { data: linkTypes, isLoading } = useLinkTypes(org?.id)
   const { data: itemTypes } = useItemTypes(org?.id)
@@ -157,7 +159,12 @@ export default function LinkTypesAdmin() {
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-slate-800">Link Types</h1>
-        <NewLinkTypeForm orgId={org.id} contentTypes={contentTypes} />
+        {!orgAdmin && (
+          <p className="mb-4 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-500">
+            Read-only — only an organization admin can change this organization-wide data.
+          </p>
+        )}
+        {orgAdmin && <NewLinkTypeForm orgId={org.id} contentTypes={contentTypes} />}
       </div>
 
       <p className="mb-4 max-w-2xl text-sm text-slate-500">

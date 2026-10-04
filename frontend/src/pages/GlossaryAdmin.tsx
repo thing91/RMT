@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { apiErrorMessage } from '../api/client'
+import { useIsOrgAdmin } from '../api/collabHooks'
 import {
   useCreateGlossaryTerm,
   useDeleteGlossaryTerm,
@@ -205,6 +206,7 @@ function TermRow({ term }: { term: GlossaryTerm }) {
 }
 
 export default function GlossaryAdmin() {
+  const orgAdmin = useIsOrgAdmin()
   const { org } = useOrg()
   const { data: terms, isLoading } = useGlossary(org?.id)
   const { data: report } = useGlossaryConsistency(org?.id)
@@ -229,7 +231,12 @@ export default function GlossaryAdmin() {
             Export HTML
           </a>
           <ImportButton orgId={org.id} />
-          <NewTermForm orgId={org.id} />
+          {!orgAdmin && (
+          <p className="mb-4 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-500">
+            Read-only — only an organization admin can change this organization-wide data.
+          </p>
+        )}
+        {orgAdmin && <NewTermForm orgId={org.id} />}
         </div>
       </div>
       <p className="mb-4 max-w-2xl text-sm text-slate-500">

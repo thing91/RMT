@@ -137,6 +137,7 @@ export interface Project {
   gitlab_repo_url: string | null
   default_branch: string
   kind: 'project' | 'library'
+  key_prefix: string | null
   mission_attribute_defs: MissionAttributeDef[]
   mission_attributes: Record<string, unknown>
 }

@@ -31,10 +31,23 @@ Szczegóły użytkowe: README → „Concurrency, workflow & change management�
 | F4.6 | Wymagania parametryczne, reguły sugerowanej aplikowalności | ✅ |
 | F5 | Roadmap: kanban, lista, zgłaszanie z podpowiedzią duplikatów, głosy, oficjalne odpowiedzi, panel zespołu, release notes | ✅ |
 
+## Druga runda (2026-10-04)
+
+| Zakres | Status |
+|---|---|
+| Awatary osób edytujących przy wymaganiu i dokumencie (na żywo) | ✅ |
+| Strumień zdarzeń SSE zamiast pollingu (blokady, powiadomienia) | ✅ |
+| Powiadomienie „wolne” także przy cichym wygaśnięciu blokady (sweeper co 30 s) | ✅ |
+| Ustawienia organizacji w UI (czasy blokad, rozdział obowiązków) | ✅ |
+| Macierz uprawnień ról w UI | ✅ |
+| Wizualny edytor workflow (+ JSON jako tryb zaawansowany) | ✅ |
+| Prefiks kluczy projektu / biblioteki | ✅ |
+| Zapis schematu (typy, glosariusz, normy) tylko dla admina organizacji | ✅ |
+| ReqIF: eksport i import dokumentu | ✅ |
+| Testy frontendu (Vitest) | ✅ 13 testów; backend 59 |
+
 ## Poza zakresem / do rozważenia
 
 - Współdzielona edycja w czasie rzeczywistym (Yjs) — zgodnie ze specyfikacją.
-- Push zamiast pollingu (SSE/WebSocket) dla blokad i powiadomień.
-- Zabezpieczenie zapisu typów elementów/glosariusza uprawnieniem `org.admin` (zmienia dotychczasowe zachowanie).
-- Import ReqIF; eksport dokumentów do ReqIF.
-- Powiadomienie „zwolniono” przy cichym wygaśnięciu lease'a (obecnie tylko przy jawnym zwolnieniu/przejęciu).
+- Wspólny broker zdarzeń (LISTEN/NOTIFY) przy wielu workerach.
+- ReqIF: aktualizacja wcześniej zaimportowanych elementów i import relacji.

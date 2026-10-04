@@ -45,6 +45,11 @@ export function usePermissions(projectId?: string) {
   })
 }
 
+export function useIsOrgAdmin(): boolean {
+  const { data } = usePermissions()
+  return !!data?.org_admin
+}
+
 export function can(perms: Permissions | undefined, permission: string): boolean {
   return !!perms && (perms.permissions.includes(permission) || perms.org_permissions.includes(permission))
 }
