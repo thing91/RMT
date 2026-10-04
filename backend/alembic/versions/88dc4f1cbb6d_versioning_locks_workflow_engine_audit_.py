@@ -251,7 +251,9 @@ def upgrade() -> None:
     op.add_column('documents', sa.Column('structure_version', sa.Integer(), server_default='1', nullable=False))
     op.add_column('items', sa.Column('version', sa.Integer(), server_default='1', nullable=False))
     op.add_column('items', sa.Column('obsolete_at', sa.DateTime(timezone=True), nullable=True))
-    op.create_index(op.f('ix_items_key'), 'items', ['key'], unique=False)
+    # The baseline revision already creates this index on a fresh database;
+    # only databases created before Alembic (e.g. the original dev DB) lack it.
+    op.create_index(op.f('ix_items_key'), 'items', ['key'], unique=False, if_not_exists=True)
     op.add_column('links', sa.Column('suspect', sa.Boolean(), server_default='false', nullable=False))
     op.add_column('links', sa.Column('suspect_reason', sa.Text(), nullable=True))
     op.add_column('links', sa.Column('suspect_since', sa.DateTime(timezone=True), nullable=True))
@@ -259,21 +261,102 @@ def upgrade() -> None:
     op.add_column('users', sa.Column('org_role', sa.String(length=20), nullable=True))
     # ### end Alembic commands ###
 
-    # Data: org admin for the dev bootstrap user, version-1 snapshots for
-    # existing items, and a default workflow per content item type (the
-    # old draft/review/approved values all exist in the templates).
+    # Data: org admin for the dev bootstrap user, a default workflow per
+    # content item type, initial status for content items that had none, and
+    # a version-1 snapshot for every existing item.
+    #
+    # Deliberately plain SQL against the schema *as of this revision* — no
+    # ORM models — so the migration still runs on a fresh database after
+    # later revisions add columns to those models.
     op.execute("UPDATE users SET org_role = 'admin' WHERE username = 'admin'")
-    from sqlalchemy.orm import Session
+    _bootstrap_data(op.get_bind())
 
-    import app.models  # noqa: F401
-    from app.models.organization import Organization
-    from app.services.bootstrap import ensure_default_workflows, ensure_item_versions
 
-    session = Session(bind=op.get_bind())
-    for org in session.query(Organization).all():
-        ensure_default_workflows(session, org)
-    ensure_item_versions(session)
-    session.flush()
+def _bootstrap_data(conn) -> None:
+    import copy
+    import json
+    import uuid as _uuid
+
+    from app.services.workflow_templates import DEFAULT_ITEM_TEMPLATE, ITEM_TEMPLATES
+
+    template_for = {"requirement": "change_managed", "verification_activity": "test_case", "test_case": "test_case"}
+    types = conn.execute(
+        sa.text("SELECT id, org_id, key FROM item_types WHERE behavior = 'content'")
+    ).fetchall()
+    for type_id, org_id, type_key in types:
+        exists = conn.execute(
+            sa.text("SELECT 1 FROM workflow_definitions WHERE item_type_id = :t AND project_id IS NULL"),
+            {"t": type_id},
+        ).first()
+        if exists:
+            continue
+        template = copy.deepcopy(ITEM_TEMPLATES[template_for.get(type_key, DEFAULT_ITEM_TEMPLATE)])
+        conn.execute(
+            sa.text(
+                "INSERT INTO workflow_definitions (id, org_id, project_id, item_type_id, name, variant, states, "
+                "transitions, settings, created_at, updated_at) VALUES (:id, :org, NULL, :t, :name, :variant, "
+                "CAST(:states AS jsonb), CAST(:transitions AS jsonb), '{}'::jsonb, now(), now())"
+            ),
+            {
+                "id": _uuid.uuid4(), "org": org_id, "t": type_id, "name": template["name"],
+                "variant": template["variant"], "states": json.dumps(template["states"]),
+                "transitions": json.dumps(template["transitions"]),
+            },
+        )
+        # Status options mirror the workflow states; values not in the
+        # workflow stay valid as deprecated options.
+        options = [
+            {"value": st["key"], "label": st["label"], "deprecated": False, "color": st.get("color")}
+            for st in template["states"]
+        ]
+        keys = {o["value"] for o in options}
+        attr = conn.execute(
+            sa.text("SELECT id, enum_options FROM item_type_attributes WHERE item_type_id = :t AND key = 'status'"),
+            {"t": type_id},
+        ).first()
+        if attr is None:
+            conn.execute(
+                sa.text(
+                    'INSERT INTO item_type_attributes (id, item_type_id, key, label, data_type, enum_options, '
+                    'required, "order", is_system, deprecated, created_at, updated_at) VALUES (:id, :t, '
+                    "'status', 'Status', 'enum', CAST(:opts AS jsonb), true, -1, true, false, now(), now())"
+                ),
+                {"id": _uuid.uuid4(), "t": type_id, "opts": json.dumps(options)},
+            )
+        else:
+            old = attr[1] or []
+            merged = options + [{**o, "deprecated": True} for o in old if o.get("value") not in keys]
+            conn.execute(
+                sa.text("UPDATE item_type_attributes SET data_type = 'enum', enum_options = CAST(:opts AS jsonb) "
+                        "WHERE id = :id"),
+                {"id": attr[0], "opts": json.dumps(merged)},
+            )
+        initial = next((st["key"] for st in template["states"] if st.get("initial")), template["states"][0]["key"])
+        conn.execute(
+            sa.text(
+                "UPDATE items SET attributes = COALESCE(attributes, '{}'::jsonb) || jsonb_build_object('status', "
+                "CAST(:s AS text)) WHERE item_type_id = :t AND (attributes->>'status') IS NULL"
+            ),
+            {"s": initial, "t": type_id},
+        )
+
+    conn.execute(
+        sa.text(
+            """
+            INSERT INTO item_versions (id, item_id, version, snapshot, reason, note, created_at)
+            SELECT gen_random_uuid(), i.id, 1,
+                   jsonb_build_object(
+                       'key', i.key, 'title', i.title, 'description_md', i.description_md,
+                       'attributes', COALESCE(i.attributes, '{}'::jsonb), 'item_type_id', i.item_type_id::text,
+                       'parent_id', i.parent_id::text, 'order', i."order", 'obsolete', false),
+                   'migration',
+                   'Baseline version created when item versioning was introduced.',
+                   now()
+            FROM items i
+            WHERE NOT EXISTS (SELECT 1 FROM item_versions v WHERE v.item_id = i.id)
+            """
+        )
+    )
 
 
 def downgrade() -> None:

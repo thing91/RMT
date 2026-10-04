@@ -385,10 +385,11 @@ schema in the dev database; `pip install -r requirements-dev.txt` first).
   (`app/services/workflow_engine.py`), so a new kind of rule is code, not
   configuration. Link edits don't create item versions. Real-time co-editing
   (Yjs) is out of scope, as the spec says.
-- **Data migrations call app code.** The Alembic revision that introduced
-  workflows/versions bootstraps data through `app.services.bootstrap`, so
-  replaying old migrations on a fresh database depends on today's models —
-  a fresh dev DB should use `app.seed` (which calls `create_all`) instead.
+- **Migrations from scratch were verified** (empty schema → `alembic
+  upgrade head` → `app.seed`, and a pre-workflow database with legacy
+  status values). The workflow data migration is plain SQL; it only imports
+  the workflow templates (pure data), so changing a template later doesn't
+  rewrite history but does change what a *fresh* migration would insert.
 - **ReqIF is export-only** and covers the applicability matrix, not
   documents; ReqIF import isn't built.
 - **Parameters have no unit conversion** (Nm vs. N·m vs. lb·ft, as the
