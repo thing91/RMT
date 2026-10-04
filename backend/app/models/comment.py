@@ -23,6 +23,12 @@ class ItemComment(Base, IdMixin, TimestampMixin):
     parent_comment_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("item_comments.id"), nullable=True, index=True
     )
+    # Set for a suggestion's own discussion thread — those comments still
+    # carry the item_id (for permissions) but are listed under the
+    # suggestion, not in the item's general discussion.
+    suggestion_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("suggestions.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     author_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     body: Mapped[str] = mapped_column(Text)
     resolved: Mapped[bool] = mapped_column(Boolean, default=False)

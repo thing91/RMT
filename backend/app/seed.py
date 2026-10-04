@@ -14,16 +14,17 @@ from app.models.organization import Organization
 from app.models.project import Project
 from app.models.project_access import ProjectAccess
 from app.models.user import User
+from app.services.bootstrap import ensure_default_workflows
 
 PRIORITY_OPTIONS = [
     {"value": "low", "label": "Low", "deprecated": False},
     {"value": "medium", "label": "Medium", "deprecated": False},
     {"value": "high", "label": "High", "deprecated": False},
 ]
+# Placeholder only — the real status options are generated from each
+# type's workflow (app/services/bootstrap.ensure_default_workflows).
 STATUS_OPTIONS = [
     {"value": "draft", "label": "Draft", "deprecated": False},
-    {"value": "review", "label": "In Review", "deprecated": False, "notify_reviewers": True},
-    {"value": "approved", "label": "Approved", "deprecated": False, "requires_approval": True},
 ]
 
 
@@ -37,12 +38,16 @@ def _ensure_admin_bootstrap(db, org: Organization) -> None:
     """
     admin = db.query(User).filter_by(username="admin").first()
     if not admin:
-        admin = User(org_id=org.id, username="admin", display_name="Admin", email="admin@example.com")
+        admin = User(
+            org_id=org.id, username="admin", display_name="Admin", email="admin@example.com", org_role="admin"
+        )
         db.add(admin)
         db.flush()
         print(f"Created dev admin user (id={admin.id}); log in as 'admin' with any password.")
     elif not admin.email:
         admin.email = "admin@example.com"  # backfill so workflow email notifications have somewhere to go
+    if admin.org_role is None:
+        admin.org_role = "admin"
 
     for project in db.query(Project).filter_by(org_id=org.id).all():
         has_grant = (
@@ -56,6 +61,7 @@ def _ensure_admin_bootstrap(db, org: Organization) -> None:
                     project_id=project.id, subject_type="user", subject_id=admin.id, role="admin"
                 )
             )
+    ensure_default_workflows(db, org)
     db.commit()
 
 

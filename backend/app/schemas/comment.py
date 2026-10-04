@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict
 class CommentCreate(BaseModel):
     body: str
     parent_comment_id: uuid.UUID | None = None
+    # Post into a suggestion's discussion thread instead of the item's.
+    suggestion_id: uuid.UUID | None = None
 
 
 class CommentUpdate(BaseModel):
@@ -27,4 +29,5 @@ class CommentRead(BaseModel):
     resolved: bool
     resolved_by: str | None = None
     resolved_at: datetime | None = None
+    suggestion_id: uuid.UUID | None = None
     replies: list["CommentRead"] = []

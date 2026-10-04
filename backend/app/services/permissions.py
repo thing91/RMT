@@ -157,7 +157,7 @@ def org_permissions(db: Session, user: User | None) -> set[str]:
     if user is None:
         return set()
     if is_org_admin(user):
-        return set(ALL_PERMISSIONS)
+        return set(ORG_PERMISSIONS)
     # "org_member" is a pseudo-role: grants to it apply to every logged-in
     # user of the org (e.g. letting all members manage the roadmap).
     return {p for p in permissions_for_role(db, user.org_id, "org_member") if p in ORG_PERMISSIONS}

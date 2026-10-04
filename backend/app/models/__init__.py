@@ -16,6 +16,7 @@ from app.models.project import Project
 from app.models.permission import RolePermission
 from app.models.project_access import ProjectAccess
 from app.models.reference import ReferenceLocator, ReferenceSource
+from app.models.suggestion import Suggestion
 from app.models.table_view import TableView
 from app.models.user import Group, GroupMember, User
 from app.models.lock import EditLock, LockWaiter
@@ -68,4 +69,5 @@ __all__ = [
     "ReviewItem",
     "ReviewParticipant",
     "KeyCounter",
+    "Suggestion",
 ]

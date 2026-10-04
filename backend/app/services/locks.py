@@ -254,6 +254,15 @@ def assert_can_write(db: Session, scope: str, target_id: uuid.UUID, user: User) 
         raise LockHeld(lock)
 
 
+def assert_no_explicit_structure_lock(db: Session, document_id: uuid.UUID, user: User) -> None:
+    """Adding an item only conflicts with someone deliberately reorganizing
+    the document (an explicit structure lock) — not with another user's
+    implicit move lease, so several people can add items side by side."""
+    lock = active_lock(db, "structure", document_id)
+    if lock is not None and lock.user_id != user.id and not lock.implicit:
+        raise LockHeld(lock)
+
+
 def touch_structure(db: Session, document_id: uuid.UUID, project_id: uuid.UUID, user: User) -> None:
     """Implicit structure lease for a toolbar operation (move/indent/...)."""
     acquire(

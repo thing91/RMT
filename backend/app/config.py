@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     # anyone noticeably once the user stops.
     structure_lock_implicit_seconds: int = 90
 
+    # Separation of duties defaults (overridable per item workflow via its
+    # `settings`): may a suggestion's author resolve it themself; may the
+    # person proposing "Not applicable" also approve it.
+    suggestion_self_resolve: bool = False
+    applicability_self_approve: bool = False
+
     # §workflow notifications: empty smtp_host means no mail server is
     # configured — falls back to writing each email as a .html file under
     # `mail_outbox_dir` instead of failing, same dev-fallback spirit as LDAP

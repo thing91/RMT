@@ -8,16 +8,21 @@ from app.api.v1 import (
     git_log,
     glossary,
     graph,
+    history,
     item_types,
     items,
     link_types,
     links,
+    locks,
     matrix,
     matrix_views,
+    notifications,
     organizations,
     parameters,
     projects,
     references,
+    reviews,
+    suggestions,
     table_views,
     workflow,
 )
@@ -42,3 +47,8 @@ api_router.include_router(workflow.router)
 api_router.include_router(references.router)
 api_router.include_router(parameters.router)
 api_router.include_router(comments.router)
+api_router.include_router(locks.router)
+api_router.include_router(history.router)
+api_router.include_router(notifications.router)
+api_router.include_router(reviews.router)
+api_router.include_router(suggestions.router)

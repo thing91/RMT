@@ -253,6 +253,14 @@ class ItemSubject(Subject):
             note=ctx.comment,
             source_ref=ctx.transition["key"],
         )
+        for hook in ITEM_TRANSITION_HOOKS:
+            hook(self.db, self, ctx)
+
+
+# Called after an item's transition is recorded: fn(db, ItemSubject, Context).
+# Used e.g. to apply suggestions accepted while the item was read-only once
+# it becomes editable again.
+ITEM_TRANSITION_HOOKS: list[Callable] = []
 
 
 # Subject factories registered by other modules (suggestions, ideas, ...).

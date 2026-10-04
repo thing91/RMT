@@ -113,7 +113,11 @@ REGULATED["name"] = "Regulated"
 REGULATED["variant"] = "regulated"
 for _tr in REGULATED["transitions"]:
     if _tr["key"] == "approve":
-        _tr["conditions"] = [{"type": "author_cannot_execute"}, {"type": "no_open_comments"}]
+        _tr["conditions"] = [
+            {"type": "author_cannot_execute"},
+            {"type": "no_open_comments"},
+            {"type": "no_open_suggestions", "severity": "major"},
+        ]
         _tr["actions"] = [{"type": "require_signature", "meaning": "approval"}] + _tr["actions"]
     if _tr["key"] == "submit":
         _tr["conditions"] = [{"type": "required_fields", "fields": ["title", "description_md"]}]

@@ -33,6 +33,12 @@ def create_item_type(org_id: uuid.UUID, payload: ItemTypeCreate, db: Session = D
         raise HTTPException(409, f"Item type with key '{payload.key}' already exists.")
     item_type = ItemType(org_id=org_id, is_system=False, **payload.model_dump())
     db.add(item_type)
+    db.flush()
+    # Every content type gets the org's default workflow straight away
+    # (adjustable afterwards under Workflows).
+    from app.services.bootstrap import ensure_default_workflow
+
+    ensure_default_workflow(db, item_type)
     db.commit()
     db.refresh(item_type)
     return item_type
@@ -104,6 +110,14 @@ def update_attribute(
     # §4.5: data_type changes are not allowed in-place — only a new attribute
     # (plus an optional bulk migration) may change how a field is typed.
     data = payload.model_dump(exclude_unset=True)
+    if attribute.key == "status" and "enum_options" in data:
+        from app.models.workflow_def import WorkflowDefinition
+
+        if db.query(WorkflowDefinition).filter_by(item_type_id=item_type_id).first():
+            raise HTTPException(
+                422,
+                "Status values are defined by this type's workflow — change the workflow instead.",
+            )
     for field, value in data.items():
         setattr(attribute, field, value)
     db.commit()
