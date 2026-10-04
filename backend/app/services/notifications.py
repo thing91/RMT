@@ -95,7 +95,10 @@ def notify(
             continue
         seen.add(u.id)
         targets.append(u)
+    from app.services.events import emit
+
     for u in targets:
+        emit(db, {"type": "notification", "user_id": str(u.id), "title": title[:200]})
         db.add(
             Notification(
                 user_id=u.id,

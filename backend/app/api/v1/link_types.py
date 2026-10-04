@@ -3,7 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import assert_org_admin, get_db, require_user
+from app.models.user import User
 from app.models.link import LinkType
 from app.schemas.link import LinkTypeCreate, LinkTypeRead, LinkTypeUpdate
 
@@ -16,7 +17,13 @@ def list_link_types(org_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/organizations/{org_id}/link-types", response_model=LinkTypeRead, status_code=201)
-def create_link_type(org_id: uuid.UUID, payload: LinkTypeCreate, db: Session = Depends(get_db)):
+def create_link_type(
+    org_id: uuid.UUID,
+    payload: LinkTypeCreate,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    assert_org_admin(db, user, org_id)
     exists = (
         db.query(LinkType)
         .filter(LinkType.org_id == org_id, LinkType.key == payload.key)
@@ -37,11 +44,15 @@ def create_link_type(org_id: uuid.UUID, payload: LinkTypeCreate, db: Session = D
 
 @router.patch("/link-types/{link_type_id}", response_model=LinkTypeRead)
 def update_link_type(
-    link_type_id: uuid.UUID, payload: LinkTypeUpdate, db: Session = Depends(get_db)
+    link_type_id: uuid.UUID,
+    payload: LinkTypeUpdate,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
 ):
     link_type = db.get(LinkType, link_type_id)
     if not link_type:
         raise HTTPException(404, "Link type not found")
+    assert_org_admin(db, user, link_type.org_id)
     data = payload.model_dump(exclude_unset=True)
     if "allowed_source_types" in data and data["allowed_source_types"] is not None:
         data["allowed_source_types"] = [str(x) for x in data["allowed_source_types"]]
@@ -55,9 +66,12 @@ def update_link_type(
 
 
 @router.delete("/link-types/{link_type_id}", status_code=204)
-def delete_link_type(link_type_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_link_type(
+    link_type_id: uuid.UUID, user: User = Depends(require_user), db: Session = Depends(get_db)
+):
     link_type = db.get(LinkType, link_type_id)
     if not link_type:
         raise HTTPException(404, "Link type not found")
+    assert_org_admin(db, user, link_type.org_id)
     db.delete(link_type)
     db.commit()

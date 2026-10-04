@@ -28,6 +28,10 @@ class EditLock(Base, IdMixin):
     project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
+    # The document the lock is in (the item's document, or the document
+    # itself for a structure lock) — lets the UI show "who is editing
+    # something in this document" without a lookup per lock.
+    document_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     heartbeat_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

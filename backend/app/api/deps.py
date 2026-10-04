@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.services.auth import AuthError, decode_access_token
-from app.services.permissions import can_read, has_role_at_least
+from app.services.permissions import can_read, has_org_permission, has_role_at_least
 
 __all__ = ["get_db"]
 
@@ -64,3 +64,10 @@ def require_project_role(min_role: str):
         return project
 
     return dependency
+
+
+def assert_org_admin(db: Session, user: User | None, org_id: uuid.UUID) -> None:
+    """Organization-wide schema and reference data (item/link types,
+    glossary, standards) may only be changed by an admin of that org."""
+    if user is None or user.org_id != org_id or not has_org_permission(db, user, "org.admin"):
+        raise HTTPException(403, "Only an organization admin can change this organization-wide setting.")

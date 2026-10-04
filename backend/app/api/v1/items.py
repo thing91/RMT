@@ -75,12 +75,14 @@ def _next_key(db: Session, project_id: uuid.UUID, item_type: ItemType) -> str | 
         .filter(Document.project_id == project_id, Item.item_type_id == item_type.id)
         .all()
     )
+    project_prefix = db.query(Project.key_prefix).filter(Project.id == project_id).scalar()
+    full_prefix = f"{project_prefix}-{item_type.prefix}" if project_prefix else item_type.prefix
     highest = 0
     for (key,) in existing_keys:
-        suffix = (key or "").removeprefix(item_type.prefix)
+        suffix = (key or "").removeprefix(full_prefix)
         if suffix.isdigit():
             highest = max(highest, int(suffix))
-    return f"{item_type.prefix}{highest + 1:03d}"
+    return f"{full_prefix}{highest + 1:03d}"
 
 
 def _default_required_enums(

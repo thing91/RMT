@@ -24,6 +24,7 @@ from app.schemas.project import (
     DocumentUpdate,
     ProjectCreate,
     ProjectRead,
+    ProjectUpdate,
 )
 from app.schemas.user import ProjectAccessCreate, ProjectAccessRead
 from app.services.permissions import can_read, has_role_at_least
@@ -50,13 +51,47 @@ def create_project(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    project = Project(org_id=org_id, **payload.model_dump())
+    data = payload.model_dump()
+    if data["kind"] == "library" and not data.get("key_prefix"):
+        data["key_prefix"] = default_key_prefix(payload.name)
+    project = Project(org_id=org_id, **data)
     db.add(project)
     db.flush()
     # The creator is granted admin on their own new project — otherwise
     # nobody could manage access on it afterward (§13.5's admin-approval
     # queue is Phase 3; Phase 1 still needs *someone* to hold admin).
     db.add(ProjectAccess(project_id=project.id, subject_type="user", subject_id=user.id, role="admin"))
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def default_key_prefix(name: str) -> str:
+    """"GEN-SAT (demo library)" → "GENSAT" — letters/digits of the first
+    word-ish chunk, uppercase, at most 8 characters."""
+    import re
+
+    first = re.split(r"[\s(]", name.strip(), maxsplit=1)[0]
+    return (re.sub(r"[^A-Za-z0-9]", "", first).upper() or "LIB")[:8]
+
+
+@router.patch("/projects/{project_id}", response_model=ProjectRead)
+def update_project(
+    project_id: uuid.UUID,
+    payload: ProjectUpdate,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Name, visibility and key prefix. A new key prefix applies to items
+    created from now on — existing keys never change (they're referenced
+    from documents, exports and baselines)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if not has_role_at_least(db, project_id, user.id, "admin"):
+        raise HTTPException(403, "Requires the 'admin' role on this project.")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(project, field, value)
     db.commit()
     db.refresh(project)
     return project

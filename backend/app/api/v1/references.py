@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_project_read, require_user
+from app.api.deps import assert_org_admin, get_db, require_project_read, require_user
 from app.config import settings
 from app.models.document import Document
 from app.models.item import Item
@@ -59,6 +59,7 @@ async def create_standard(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
+    assert_org_admin(db, user, org_id)
     if source_type == "pdf" and not file:
         raise HTTPException(422, "A PDF file is required when source_type is 'pdf'.")
     if source_type == "external_link" and not external_url:
@@ -130,8 +131,8 @@ def _require_source_write(db: Session, source: ReferenceSource, user: User) -> N
     if source.scope == "project_reference":
         if not has_role_at_least(db, source.project_id, user.id, "editor"):
             raise HTTPException(403, "Requires at least 'editor' role on this project.")
-    # Standards: open to any logged-in user, same simplification as
-    # item-types/link-types/glossary (no org-admin role modeled yet).
+    else:
+        assert_org_admin(db, user, source.org_id)
 
 
 @router.patch("/reference-sources/{source_id}", response_model=ReferenceSourceRead)

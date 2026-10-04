@@ -4,6 +4,7 @@ from app.api.v1 import (
     auth,
     baselines,
     comments,
+    events,
     exports,
     git_log,
     glossary,
@@ -56,3 +57,4 @@ api_router.include_router(reviews.router)
 api_router.include_router(suggestions.router)
 api_router.include_router(library.router)
 api_router.include_router(roadmap.router)
+api_router.include_router(events.router)

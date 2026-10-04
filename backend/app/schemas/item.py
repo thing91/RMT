@@ -38,6 +38,7 @@ class ItemMove(BaseModel):
 class LockRead(BaseModel):
     scope: str
     target_id: uuid.UUID
+    document_id: uuid.UUID | None = None
     user_id: uuid.UUID
     user_name: str
     acquired_at: datetime

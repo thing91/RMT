@@ -21,6 +21,10 @@ class Project(Base, IdMixin, TimestampMixin):
     # "project" (a normal project) or "library" (generic requirements,
     # consumed by other projects only through releases).
     kind: Mapped[str] = mapped_column(String(20), default="project", server_default="project")
+    # Optional prefix in front of every item key minted in this project,
+    # e.g. "GENSAT" → GENSAT-SYS-001. Libraries get one by default so their
+    # requirements are never confused with a consuming project's SYS-001.
+    key_prefix: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # Library: the mission attributes its applicability rules may test,
     # [{key, label, type: boolean|enum|number|text, options?}].
     # Project: the values of those attributes, {key: value}.

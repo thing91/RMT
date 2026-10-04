@@ -214,3 +214,60 @@ def set_role_permission(
     )
     db.commit()
     return list_role_permissions(org_id, db)
+
+
+# ---- organization settings (org admins only to change) ----------------------
+
+ORG_SETTING_SPECS = {
+    "edit_lock_timeout_minutes": (int, 1, 240),
+    "structure_lock_implicit_seconds": (int, 15, 1800),
+    "suggestion_self_resolve": (bool, None, None),
+    "applicability_self_approve": (bool, None, None),
+}
+
+
+class OrgSettingsRead(BaseModel):
+    values: dict
+    defaults: dict
+
+
+@router.get("/organizations/{org_id}/settings", response_model=OrgSettingsRead)
+def get_org_settings(org_id: uuid.UUID, db: Session = Depends(get_db)):
+    from app.config import settings as app_settings
+    from app.models.organization import Organization
+
+    org = db.get(Organization, org_id)
+    if not org:
+        raise HTTPException(404, "Organization not found")
+    defaults = {k: getattr(app_settings, k) for k in ORG_SETTING_SPECS}
+    return OrgSettingsRead(values={**defaults, **(org.settings or {})}, defaults=defaults)
+
+
+@router.put("/organizations/{org_id}/settings", response_model=OrgSettingsRead)
+def put_org_settings(
+    org_id: uuid.UUID, payload: dict, user: User = Depends(require_user), db: Session = Depends(get_db)
+):
+    from app.api.deps import assert_org_admin
+    from app.models.organization import Organization
+
+    assert_org_admin(db, user, org_id)
+    org = db.get(Organization, org_id)
+    current = dict(org.settings or {})
+    for key, value in payload.items():
+        if key not in ORG_SETTING_SPECS:
+            raise HTTPException(422, f"Unknown setting '{key}'.")
+        typ, lo, hi = ORG_SETTING_SPECS[key]
+        if value is None:
+            current.pop(key, None)
+            continue
+        if typ is bool and not isinstance(value, bool):
+            raise HTTPException(422, f"'{key}' must be true or false.")
+        if typ is int:
+            if not isinstance(value, int) or isinstance(value, bool) or not lo <= value <= hi:
+                raise HTTPException(422, f"'{key}' must be a whole number between {lo} and {hi}.")
+        current[key] = value
+    org.settings = current
+    audit.log(db, action="org.settings", subject_type="organization", subject_id=org.id, actor=user,
+              org_id=org.id, summary="Organization settings changed", payload=payload)
+    db.commit()
+    return get_org_settings(org_id, db)

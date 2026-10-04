@@ -3,7 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import assert_org_admin, get_db, require_user
+from app.models.user import User
 from app.models.item_type import ItemType, ItemTypeAttribute
 from app.schemas.item_type import (
     ItemTypeAttributeCreate,
@@ -23,7 +24,13 @@ def list_item_types(org_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/organizations/{org_id}/item-types", response_model=ItemTypeRead, status_code=201)
-def create_item_type(org_id: uuid.UUID, payload: ItemTypeCreate, db: Session = Depends(get_db)):
+def create_item_type(
+    org_id: uuid.UUID,
+    payload: ItemTypeCreate,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    assert_org_admin(db, user, org_id)
     exists = (
         db.query(ItemType)
         .filter(ItemType.org_id == org_id, ItemType.key == payload.key)
@@ -46,11 +53,15 @@ def create_item_type(org_id: uuid.UUID, payload: ItemTypeCreate, db: Session = D
 
 @router.patch("/item-types/{item_type_id}", response_model=ItemTypeRead)
 def update_item_type(
-    item_type_id: uuid.UUID, payload: ItemTypeUpdate, db: Session = Depends(get_db)
+    item_type_id: uuid.UUID,
+    payload: ItemTypeUpdate,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
 ):
     item_type = db.get(ItemType, item_type_id)
     if not item_type:
         raise HTTPException(404, "Item type not found")
+    assert_org_admin(db, user, item_type.org_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(item_type, field, value)
     db.commit()
@@ -59,10 +70,13 @@ def update_item_type(
 
 
 @router.delete("/item-types/{item_type_id}", status_code=204)
-def delete_item_type(item_type_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_item_type(
+    item_type_id: uuid.UUID, user: User = Depends(require_user), db: Session = Depends(get_db)
+):
     item_type = db.get(ItemType, item_type_id)
     if not item_type:
         raise HTTPException(404, "Item type not found")
+    assert_org_admin(db, user, item_type.org_id)
     if item_type.is_system:
         raise HTTPException(400, "Built-in item types cannot be deleted.")
     db.delete(item_type)
@@ -75,11 +89,15 @@ def delete_item_type(item_type_id: uuid.UUID, db: Session = Depends(get_db)):
     status_code=201,
 )
 def create_attribute(
-    item_type_id: uuid.UUID, payload: ItemTypeAttributeCreate, db: Session = Depends(get_db)
+    item_type_id: uuid.UUID,
+    payload: ItemTypeAttributeCreate,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
 ):
     item_type = db.get(ItemType, item_type_id)
     if not item_type:
         raise HTTPException(404, "Item type not found")
+    assert_org_admin(db, user, item_type.org_id)
     exists = any(a.key == payload.key for a in item_type.attributes)
     if exists:
         raise HTTPException(409, f"Attribute with key '{payload.key}' already exists on this type.")
@@ -101,11 +119,13 @@ def update_attribute(
     item_type_id: uuid.UUID,
     attribute_id: uuid.UUID,
     payload: ItemTypeAttributeUpdate,
+    user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     attribute = db.get(ItemTypeAttribute, attribute_id)
     if not attribute or attribute.item_type_id != item_type_id:
         raise HTTPException(404, "Attribute not found")
+    assert_org_admin(db, user, attribute.item_type.org_id)
 
     # §4.5: data_type changes are not allowed in-place — only a new attribute
     # (plus an optional bulk migration) may change how a field is typed.
@@ -127,11 +147,15 @@ def update_attribute(
 
 @router.delete("/item-types/{item_type_id}/attributes/{attribute_id}", status_code=204)
 def delete_attribute(
-    item_type_id: uuid.UUID, attribute_id: uuid.UUID, db: Session = Depends(get_db)
+    item_type_id: uuid.UUID,
+    attribute_id: uuid.UUID,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
 ):
     attribute = db.get(ItemTypeAttribute, attribute_id)
     if not attribute or attribute.item_type_id != item_type_id:
         raise HTTPException(404, "Attribute not found")
+    assert_org_admin(db, user, attribute.item_type.org_id)
     if attribute.is_system:
         raise HTTPException(400, "Built-in attributes cannot be deleted, only deprecated.")
     db.delete(attribute)

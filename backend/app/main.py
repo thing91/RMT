@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 
 from fastapi import FastAPI
@@ -24,8 +26,33 @@ app.include_router(api_router)
 
 
 @app.on_event("startup")
-def on_startup() -> None:
+async def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
+    asyncio.create_task(_sweep_expired_locks())
+
+
+async def _sweep_expired_locks() -> None:
+    """Every 30 s: drop expired edit locks, announcing them (presence
+    avatars disappear, "notify me when free" fires) even when nobody
+    released them explicitly — e.g. a closed laptop."""
+    from fastapi.concurrency import run_in_threadpool
+
+    from app.database import SessionLocal
+    from app.services.locks import sweep_expired
+
+    def sweep() -> None:
+        db = SessionLocal()
+        try:
+            sweep_expired(db)
+        finally:
+            db.close()
+
+    while True:
+        await asyncio.sleep(30)
+        try:
+            await run_in_threadpool(sweep)
+        except Exception:  # noqa: BLE001 — keep sweeping even if one pass fails
+            logging.getLogger("rmt.locks").exception("Lock sweep failed")
 
 
 @app.get("/api/v1/health")

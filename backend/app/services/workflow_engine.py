@@ -173,6 +173,14 @@ class Subject:
         return getattr(self.obj, name, None)
 
     def setting(self, name: str, default: Any = None) -> Any:
+        """Organization override (Organization.settings), else app config."""
+        from app.models.organization import Organization
+
+        org_id = self.org_id
+        if org_id is not None:
+            org = self.db.get(Organization, org_id)
+            if org is not None and (org.settings or {}).get(name) is not None:
+                return org.settings[name]
         return getattr(settings, name, default)
 
     def after_transition(self, ctx: "Context") -> None:

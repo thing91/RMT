@@ -116,3 +116,170 @@ def applicability_reqif(project, records) -> bytes:
 
     ET.indent(root)
     return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="utf-8")
+
+
+# ---- documents ---------------------------------------------------------------
+
+
+def document_reqif(document, items, item_types) -> bytes:
+    """A whole document as ReqIF: one SPEC-OBJECT per item (sections and
+    requirements alike), the document tree as nested SPEC-HIERARCHY, every
+    attribute as a string attribute named after its label."""
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    types_by_id = {t.id: t for t in item_types}
+    attr_labels: dict[str, str] = {}
+    for t in item_types:
+        for a in t.attributes:
+            attr_labels.setdefault(a.key, a.label)
+
+    root = ET.Element("REQ-IF", {"xmlns": NS})
+    header = _el(_el(root, "THE-HEADER"), "REQ-IF-HEADER", IDENTIFIER=f"H-{uuid.uuid4()}")
+    for tag, text in (
+        ("CREATION-TIME", now), ("REQ-IF-TOOL-ID", "RMT-KNA"), ("REQ-IF-VERSION", "1.0"),
+        ("SOURCE-TOOL-ID", "RMT-KNA"), ("TITLE", document.name),
+    ):
+        _el(header, tag).text = text
+    content = _el(_el(root, "CORE-CONTENT"), "REQ-IF-CONTENT")
+    datatypes = _el(content, "DATATYPES")
+    _el(datatypes, "DATATYPE-DEFINITION-STRING", IDENTIFIER="DT-String", LAST_CHANGE=now,
+        LONG_NAME="String", MAX_LENGTH="65535")
+
+    fixed = [("AD-ForeignID", "ReqIF.ForeignID"), ("AD-ChapterName", "ReqIF.ChapterName"),
+             ("AD-Name", "ReqIF.Name"), ("AD-Text", "ReqIF.Text"), ("AD-Type", "RMT.ItemType")]
+    dyn = [(f"AD-attr-{k}", label) for k, label in sorted(attr_labels.items())]
+    spec_types = _el(content, "SPEC-TYPES")
+    sot = _el(spec_types, "SPEC-OBJECT-TYPE", IDENTIFIER="SOT-Item", LAST_CHANGE=now, LONG_NAME="Item")
+    sattrs = _el(sot, "SPEC-ATTRIBUTES")
+    for ident, name in fixed + dyn:
+        ad = _el(sattrs, "ATTRIBUTE-DEFINITION-STRING", IDENTIFIER=ident, LAST_CHANGE=now, LONG_NAME=name)
+        _el(_el(ad, "TYPE"), "DATATYPE-DEFINITION-STRING-REF").text = "DT-String"
+    _el(spec_types, "SPECIFICATION-TYPE", IDENTIFIER="ST-Document", LAST_CHANGE=now, LONG_NAME="Document")
+
+    objects = _el(content, "SPEC-OBJECTS")
+    for item in items:
+        t = types_by_id.get(item.item_type_id)
+        structural = t is not None and t.behavior == "structural"
+        so = _el(objects, "SPEC-OBJECT", IDENTIFIER=f"SO-{item.id}",
+                 LAST_CHANGE=item.updated_at.isoformat(timespec="seconds"))
+        _el(_el(so, "TYPE"), "SPEC-OBJECT-TYPE-REF").text = "SOT-Item"
+        vals = _el(so, "VALUES")
+        values = {
+            "AD-ForeignID": item.key or "",
+            ("AD-ChapterName" if structural else "AD-Name"): item.title,
+            "AD-Text": item.description_md or "",
+            "AD-Type": t.name if t else "",
+        }
+        for key, value in (item.attributes or {}).items():
+            if value is not None and value != "":
+                values[f"AD-attr-{key}"] = ", ".join(map(str, value)) if isinstance(value, list) else str(value)
+        for ident, value in values.items():
+            av = _el(vals, "ATTRIBUTE-VALUE-STRING", THE_VALUE=value)
+            _el(_el(av, "DEFINITION"), "ATTRIBUTE-DEFINITION-STRING-REF").text = ident
+
+    _el(content, "SPEC-RELATIONS")
+    spec = _el(_el(content, "SPECIFICATIONS"), "SPECIFICATION", IDENTIFIER=f"SPEC-{document.id}",
+               LAST_CHANGE=now, LONG_NAME=document.name)
+    _el(_el(spec, "TYPE"), "SPECIFICATION-TYPE-REF").text = "ST-Document"
+    children_of: dict = {}
+    for item in items:
+        children_of.setdefault(item.parent_id, []).append(item)
+
+    def add(parent_el, parent_id):
+        kids = sorted(children_of.get(parent_id, []), key=lambda i: i.order)
+        if not kids:
+            return
+        container = _el(parent_el, "CHILDREN")
+        for kid in kids:
+            sh = _el(container, "SPEC-HIERARCHY", IDENTIFIER=f"SH-{kid.id}", LAST_CHANGE=now)
+            _el(_el(sh, "OBJECT"), "SPEC-OBJECT-REF").text = f"SO-{kid.id}"
+            add(sh, kid.id)
+
+    add(spec, None)
+    ET.indent(root)
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="utf-8")
+
+
+class ReqIFError(ValueError):
+    pass
+
+
+def _local(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def _text_of(el) -> str:
+    return "".join(el.itertext()).strip()
+
+
+def parse_reqif(data: bytes) -> list[dict]:
+    """Parse any ReqIF file into nodes {title, text, foreign_id, attributes,
+    children}, following its first SPECIFICATION's hierarchy. Attribute
+    names come from LONG-NAMEs; XHTML values are flattened to text;
+    enumeration values resolve to their LONG-NAME."""
+    try:
+        root = ET.fromstring(data)
+    except ET.ParseError as e:
+        raise ReqIFError(f"Not valid XML: {e}")
+    if _local(root.tag) != "REQ-IF":
+        raise ReqIFError("Not a ReqIF file (root element isn't REQ-IF).")
+
+    by_ident = {}
+    for el in root.iter():
+        ident = el.get("IDENTIFIER")
+        if ident:
+            by_ident[ident] = el
+    attr_names = {
+        el.get("IDENTIFIER"): el.get("LONG-NAME") or el.get("IDENTIFIER")
+        for el in root.iter() if _local(el.tag).startswith("ATTRIBUTE-DEFINITION-")
+    }
+    enum_names = {
+        el.get("IDENTIFIER"): el.get("LONG-NAME") or el.get("IDENTIFIER")
+        for el in root.iter() if _local(el.tag) == "ENUM-VALUE"
+    }
+
+    def object_values(obj) -> dict:
+        out: dict[str, str] = {}
+        for av in obj.iter():
+            kind = _local(av.tag)
+            if not kind.startswith("ATTRIBUTE-VALUE-"):
+                continue
+            ref = next((r.text for r in av.iter() if _local(r.tag).startswith("ATTRIBUTE-DEFINITION-")
+                        and _local(r.tag).endswith("-REF")), None)
+            name = attr_names.get(ref, ref or "?")
+            if kind == "ATTRIBUTE-VALUE-XHTML":
+                the = next((c for c in av if _local(c.tag) == "THE-VALUE"), None)
+                value = _text_of(the) if the is not None else ""
+            elif kind == "ATTRIBUTE-VALUE-ENUMERATION":
+                value = ", ".join(enum_names.get(r.text, r.text) for r in av.iter() if _local(r.tag) == "ENUM-VALUE-REF")
+            else:
+                value = av.get("THE-VALUE", "")
+            out[name] = value
+        return out
+
+    def node_for(sh) -> dict | None:
+        obj_ref = next((r.text for r in sh.iter() if _local(r.tag) == "SPEC-OBJECT-REF"), None)
+        obj = by_ident.get(obj_ref)
+        values = object_values(obj) if obj is not None else {}
+        children_el = next((c for c in sh if _local(c.tag) == "CHILDREN"), None)
+        children = [n for n in (node_for(c) for c in (children_el if children_el is not None else []) if _local(c.tag) == "SPEC-HIERARCHY") if n]
+        title = (values.pop("ReqIF.ChapterName", "") or values.pop("ReqIF.Name", "") or "").strip()
+        text = values.pop("ReqIF.Text", "")
+        if not title:
+            first_line = (text or "").strip().splitlines()[0] if (text or "").strip() else ""
+            title = first_line[:120] or (values.get("ReqIF.ForeignID") or obj_ref or "Untitled")
+        return {
+            "title": title,
+            "text": text,
+            "foreign_id": values.pop("ReqIF.ForeignID", None),
+            "attributes": values,
+            "children": children,
+        }
+
+    spec = next((el for el in root.iter() if _local(el.tag) == "SPECIFICATION"), None)
+    if spec is None:
+        raise ReqIFError("The file has no SPECIFICATION to import.")
+    children_el = next((c for c in spec if _local(c.tag) == "CHILDREN"), None)
+    nodes = [n for n in (node_for(c) for c in (children_el if children_el is not None else []) if _local(c.tag) == "SPEC-HIERARCHY") if n]
+    if not nodes:
+        raise ReqIFError("The specification is empty.")
+    return nodes

@@ -20,6 +20,7 @@ from app.config import settings
 from app.models.lock import EditLock, LockWaiter
 from app.models.user import User
 from app.services import audit
+from app.services.events import emit
 from app.services.notifications import notify
 
 
@@ -37,6 +38,7 @@ class LockLost(Exception):
 class LockInfo:
     scope: str
     target_id: uuid.UUID
+    document_id: uuid.UUID | None
     user_id: uuid.UUID
     user_name: str
     acquired_at: datetime
@@ -47,6 +49,7 @@ class LockInfo:
         return {
             "scope": self.scope,
             "target_id": str(self.target_id),
+            "document_id": str(self.document_id) if self.document_id else None,
             "user_id": str(self.user_id),
             "user_name": self.user_name,
             "acquired_at": self.acquired_at.isoformat(),
@@ -59,8 +62,44 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _lease() -> timedelta:
-    return timedelta(minutes=settings.edit_lock_timeout_minutes)
+def org_setting(db: Session, project_id: uuid.UUID | None, name: str):
+    """An organization's override of a config default (Organization.settings)."""
+    from app.models.organization import Organization
+    from app.models.project import Project
+
+    if project_id is not None:
+        org_settings = (
+            db.query(Organization.settings)
+            .join(Project, Project.org_id == Organization.id)
+            .filter(Project.id == project_id)
+            .scalar()
+        )
+        if org_settings and org_settings.get(name) is not None:
+            return org_settings[name]
+    return getattr(settings, name)
+
+
+def _lease(db: Session | None = None, project_id: uuid.UUID | None = None) -> timedelta:
+    minutes = org_setting(db, project_id, "edit_lock_timeout_minutes") if db is not None else (
+        settings.edit_lock_timeout_minutes
+    )
+    return timedelta(minutes=minutes)
+
+
+def _announce(db: Session, project_id: uuid.UUID, scope: str, target_id: uuid.UUID,
+              document_id: uuid.UUID | None, lock: "EditLock | None") -> None:
+    """Live update for everyone looking at this project (presence avatars)."""
+    emit(
+        db,
+        {
+            "type": "lock",
+            "project_id": str(project_id),
+            "scope": scope,
+            "target_id": str(target_id),
+            "document_id": str(document_id) if document_id else None,
+            "lock": to_info(lock).as_dict() if lock is not None else None,
+        },
+    )
 
 
 def _row(db: Session, scope: str, target_id: uuid.UUID) -> EditLock | None:
@@ -75,6 +114,7 @@ def to_info(lock: EditLock) -> LockInfo:
     return LockInfo(
         scope=lock.scope,
         target_id=lock.target_id,
+        document_id=lock.document_id,
         user_id=lock.user_id,
         user_name=lock.user.display_name,
         acquired_at=lock.acquired_at,
@@ -108,17 +148,22 @@ def acquire(
     *,
     implicit: bool = False,
     lease: timedelta | None = None,
+    document_id: uuid.UUID | None = None,
 ) -> EditLock:
-    lease = lease or _lease()
+    lease = lease or _lease(db, project_id)
     now = _now()
     lock = _row(db, scope, target_id)
     if lock is not None and _is_live(lock) and lock.user_id != user.id:
         raise LockHeld(lock)
+    if document_id is None and scope == "structure":
+        document_id = target_id
+    changed = lock is None or not _is_live(lock) or lock.user_id != user.id or (lock.implicit and not implicit)
     if lock is None:
         lock = EditLock(
             scope=scope,
             target_id=target_id,
             project_id=project_id,
+            document_id=document_id,
             user_id=user.id,
             acquired_at=now,
             heartbeat_at=now,
@@ -139,8 +184,12 @@ def acquire(
         lock.heartbeat_at = now
         if not implicit:
             lock.implicit = False
+        if document_id is not None:
+            lock.document_id = document_id
     db.flush()
     db.refresh(lock)
+    if changed:
+        _announce(db, project_id, scope, target_id, lock.document_id, lock)
     return lock
 
 
@@ -152,9 +201,12 @@ def heartbeat(db: Session, scope: str, target_id: uuid.UUID, user: User) -> Edit
         # Expired but nobody took it meanwhile — just renew it; the user
         # never lost anything.
         lock.acquired_at = lock.acquired_at or _now()
+    was_live = _is_live(lock)
     lock.heartbeat_at = _now()
-    lock.expires_at = _now() + _lease()
+    lock.expires_at = _now() + _lease(db, lock.project_id)
     db.flush()
+    if not was_live:
+        _announce(db, lock.project_id, scope, target_id, lock.document_id, lock)
     return lock
 
 
@@ -184,6 +236,7 @@ def release(
     lock = _row(db, scope, target_id)
     if lock is None or lock.user_id != user.id:
         return False
+    _announce(db, lock.project_id, scope, target_id, lock.document_id, None)
     db.delete(lock)
     _notify_waiters(db, scope, target_id, label or "The element", url)
     db.flush()
@@ -232,11 +285,13 @@ def override(
             subject_type=scope,
             subject_id=target_id,
         )
+    document_id = lock.document_id if lock is not None else None
     if lock is not None:
         db.delete(lock)
         db.flush()
     if take_over:
-        return acquire(db, scope, target_id, project_id, admin)
+        return acquire(db, scope, target_id, project_id, admin, document_id=document_id)
+    _announce(db, project_id, scope, target_id, document_id, None)
     _notify_waiters(db, scope, target_id, label or "The element", url)
     return None
 
@@ -272,5 +327,28 @@ def touch_structure(db: Session, document_id: uuid.UUID, project_id: uuid.UUID, 
         project_id,
         user,
         implicit=True,
-        lease=timedelta(seconds=settings.structure_lock_implicit_seconds),
+        lease=timedelta(seconds=org_setting(db, project_id, "structure_lock_implicit_seconds")),
     )
+
+
+def sweep_expired(db: Session) -> int:
+    """Remove expired leases: tells their watchers ("free to edit again")
+    and every open client (the presence avatar disappears). Run periodically
+    by the app (app/main.py) so a silently expired lock is announced too."""
+    rows = db.query(EditLock).filter(EditLock.expires_at <= _now()).all()
+    for lock in rows:
+        label = "The element"
+        url = None
+        if lock.scope == "item":
+            from app.models.item import Item
+            from app.services.notifications import item_route
+
+            item = db.get(Item, lock.target_id)
+            if item is not None:
+                label = item.key or item.title[:60]
+                url = item_route(item.document.project_id, item.document_id, item.id)
+        _announce(db, lock.project_id, lock.scope, lock.target_id, lock.document_id, None)
+        _notify_waiters(db, lock.scope, lock.target_id, label, url)
+        db.delete(lock)
+    db.commit()
+    return len(rows)

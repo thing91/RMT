@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_user
+from app.api.deps import assert_org_admin, get_db, require_user
 from app.models.document import Document
 from app.models.glossary import GlossaryTerm
 from app.models.item import Item
@@ -49,6 +49,7 @@ def create_glossary_term(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
+    assert_org_admin(db, user, org_id)
     exists = (
         db.query(GlossaryTerm)
         .filter(GlossaryTerm.org_id == org_id, GlossaryTerm.abbreviation == payload.abbreviation)
@@ -73,6 +74,7 @@ def update_glossary_term(
     term = db.get(GlossaryTerm, term_id)
     if not term:
         raise HTTPException(404, "Glossary term not found")
+    assert_org_admin(db, user, term.org_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(term, field, value)
     db.commit()
@@ -87,6 +89,7 @@ def delete_glossary_term(
     term = db.get(GlossaryTerm, term_id)
     if not term:
         raise HTTPException(404, "Glossary term not found")
+    assert_org_admin(db, user, term.org_id)
     db.delete(term)
     db.commit()
 
@@ -173,6 +176,7 @@ async def import_glossary(
     created. Same "one row per entity" shape as the requirements XLSX
     export, so a glossary can round-trip through a spreadsheet the same way
     (§8's export pipeline, applied to the glossary rather than items)."""
+    assert_org_admin(db, user, org_id)
     try:
         rows = parse_glossary_workbook(await file.read())
     except GlossaryImportError as e:

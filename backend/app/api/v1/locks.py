@@ -40,15 +40,13 @@ class BeaconRelease(BaseModel):
 
 
 def _status(db: Session, scope: str, target_id: uuid.UUID, project_id: uuid.UUID, user: User | None) -> LockStatus:
-    from app.config import settings
-
     lock = locks.active_lock(db, scope, target_id)
     info = locks.to_info(lock) if lock else None
     return LockStatus(
         lock=LockRead(**info.__dict__) if info else None,
         mine=bool(info and user and info.user_id == user.id),
         can_override=bool(user and has_permission(db, project_id, user, "lock.override")),
-        timeout_minutes=settings.edit_lock_timeout_minutes,
+        timeout_minutes=locks.org_setting(db, project_id, "edit_lock_timeout_minutes"),
     )
 
 
@@ -99,8 +97,9 @@ def _acquire(scope: str, target_id: uuid.UUID, db: Session, user: User) -> LockS
     project_id, _, _ = _target(db, scope, target_id, user)
     if not has_permission(db, project_id, user, _perm_for(scope)):
         raise HTTPException(403, f"Requires the '{_perm_for(scope)}' permission on this project.")
+    document_id = db.get(Item, target_id).document_id if scope == "item" else target_id
     try:
-        locks.acquire(db, scope, target_id, project_id, user)
+        locks.acquire(db, scope, target_id, project_id, user, document_id=document_id)
     except locks.LockHeld as e:
         raise _held(e)
     db.commit()
