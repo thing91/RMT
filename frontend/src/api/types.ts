@@ -100,6 +100,7 @@ export interface Item {
 export interface EditLock {
   scope: 'item' | 'structure'
   target_id: string
+  document_id: string | null
   user_id: string
   user_name: string
   acquired_at: string

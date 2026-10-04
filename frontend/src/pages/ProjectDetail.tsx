@@ -18,6 +18,7 @@ import {
 import type { Document, DocumentGroup } from '../api/types'
 import ProjectSettingsModal from '../components/ProjectSettingsModal'
 import { groupDocuments } from '../documents/groupDocuments'
+import { DocumentPresence } from '../components/collab/PresenceAvatar'
 
 function NewDocumentForm({ projectId, groupId }: { projectId: string; groupId: string | null }) {
   const createDocument = useCreateDocument(projectId)
@@ -91,7 +92,10 @@ function DocumentCard({
         onClick={() => navigate(`/projects/${projectId}/documents/${doc.id}`)}
         className="text-left"
       >
-        <div className="font-semibold text-slate-800">{doc.name}</div>
+        <div className="flex items-center justify-between gap-2 font-semibold text-slate-800">
+          {doc.name}
+          <DocumentPresence documentId={doc.id} />
+        </div>
         <span className="text-sm text-blue-600">Open tree →</span>
       </button>
       {groups.length > 0 && (

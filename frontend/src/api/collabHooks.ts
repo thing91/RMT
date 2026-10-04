@@ -129,7 +129,7 @@ export function useItemLock(itemId?: string, poll = true) {
     queryKey: ['item-lock', itemId],
     queryFn: async () => (await api.get<LockStatus>(`/items/${itemId}/lock`)).data,
     enabled: !!itemId,
-    refetchInterval: poll ? 15_000 : false,
+    refetchInterval: poll ? 60_000 : false,
   })
 }
 
@@ -170,7 +170,7 @@ export function useStructureLock(documentId?: string) {
     queryKey: ['structure-lock', documentId],
     queryFn: async () => (await api.get<LockStatus>(`/documents/${documentId}/structure-lock`)).data,
     enabled: !!documentId,
-    refetchInterval: 15_000,
+    refetchInterval: 60_000,
   })
 }
 
@@ -384,7 +384,7 @@ export function useNotifications(enabled: boolean) {
     queryKey: ['notifications'],
     queryFn: async () => (await api.get<NotificationPage>('/me/notifications')).data,
     enabled,
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   })
 }
 

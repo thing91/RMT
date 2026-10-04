@@ -11,6 +11,7 @@ import StructureLockBar from './collab/StructureLockBar'
 import ItemDetailPanel from './ItemDetailPanel'
 import ItemStructureToolbar from './ItemStructureToolbar'
 import LinkEndpointButtons from './LinkEndpointButtons'
+import { DocumentPresence, ItemPresence } from './collab/PresenceAvatar'
 
 interface Props {
   documentId: string
@@ -137,14 +138,7 @@ function TreeNode({
         )}
 
         {!isStructural && item.has_workflow && <StatusBadge itemType={itemType} value={item.attributes.status} small />}
-        {item.lock && item.lock.user_id !== currentUserId && (
-          <span
-            className="shrink-0 rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-800"
-            title={`${item.lock.user_name} is editing this`}
-          >
-            ✎ {item.lock.user_name}
-          </span>
-        )}
+        <ItemPresence itemId={item.id} label={item.key ?? item.title} />
         {item.suspect_links > 0 && (
           <span className="shrink-0 text-xs text-orange-600" title={`${item.suspect_links} suspect link(s)`}>
             ⚠
@@ -291,7 +285,9 @@ export default function DocumentExplorer({ documentId, orgId, compact }: Props) 
       <div className={`flex-1 overflow-auto ${compact ? 'p-3' : 'p-6'}`}>
         {!compact && (
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-slate-800">Tree View</h1>
+            <h1 className="flex items-center gap-3 text-lg font-semibold text-slate-800">
+              Tree View <DocumentPresence documentId={documentId} size={22} />
+            </h1>
             <button
               onClick={() => setAddingRoot(true)}
               className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"

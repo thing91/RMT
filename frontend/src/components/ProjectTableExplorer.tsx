@@ -17,6 +17,7 @@ import AttributeField from './AttributeField'
 import ItemDetailPanel from './ItemDetailPanel'
 import ItemStructureToolbar from './ItemStructureToolbar'
 import LinkEndpointButtons from './LinkEndpointButtons'
+import { ItemPresence } from './collab/PresenceAvatar'
 
 /** `autoFocus` alone leaves the caret at the start of any pre-filled value
  * (browsers don't move it to the end) — for an inline "edit in place" field
@@ -513,7 +514,10 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
                     } ${selectedId === item.id ? 'bg-blue-50' : ''}`}
                   >
                     <td className="px-3 py-2 font-mono text-xs text-slate-500">
-                      {isStructural ? '' : item.key}
+                      <span className="flex items-center gap-1.5">
+                        {isStructural ? '' : item.key}
+                        <ItemPresence itemId={item.id} label={item.key ?? item.title} size={18} />
+                      </span>
                     </td>
                     <td
                       className="px-3 py-2"

@@ -21,6 +21,7 @@ import AddItemForm from './AddItemForm'
 import AttributeField from './AttributeField'
 import CommentsSection from './CommentsSection'
 import DescriptionPreview from './DescriptionPreview'
+import { DocumentPresence, ItemPresence } from './collab/PresenceAvatar'
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString()
@@ -353,6 +354,7 @@ function ItemRow({
           <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
             <div className="flex flex-wrap items-baseline gap-2">
               {item.key && <span className="font-mono text-xs font-medium text-slate-500">{item.key}</span>}
+              <ItemPresence itemId={item.id} label={item.key ?? item.title} size={18} />
               <InlineEditField
                 editable={editMode}
                 value={item.title}
@@ -612,7 +614,9 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
       <div className="flex-1 overflow-auto p-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-slate-800">Document View</h1>
+            <h1 className="flex items-center gap-3 text-lg font-semibold text-slate-800">
+              Document View <DocumentPresence documentId={documentId} size={22} />
+            </h1>
             <div className="flex overflow-hidden rounded-md border border-slate-200">
               <button
                 onClick={() => setEditMode(false)}

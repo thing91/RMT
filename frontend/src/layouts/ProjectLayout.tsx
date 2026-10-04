@@ -6,6 +6,7 @@ import DocumentWorkflowModal from '../components/DocumentWorkflowModal'
 import TopBar from '../components/TopBar'
 import { groupDocuments } from '../documents/groupDocuments'
 import { ItemClipboardProvider } from '../structure/ItemClipboardContext'
+import { DocumentPresence } from '../components/collab/PresenceAvatar'
 
 const docLinkClass = ({ isActive }: { isActive: boolean }) =>
   `block truncate rounded-md px-3 py-1.5 text-sm ${
@@ -136,9 +137,10 @@ export default function ProjectLayout() {
                                   <NavLink
                                     key={doc.id}
                                     to={`/projects/${projectId}/documents/${doc.id}`}
-                                    className={docLinkClass}
+                                    className={(s) => `${docLinkClass(s)} flex items-center justify-between gap-2`}
                                   >
-                                    {doc.name}
+                                    <span className="truncate">{doc.name}</span>
+                                    <DocumentPresence documentId={doc.id} size={16} max={3} />
                                   </NavLink>
                                 ))}
                               </nav>

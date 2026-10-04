@@ -162,7 +162,7 @@ export function useDocumentTree(documentId?: string, includeObsolete = false) {
   return useQuery({
     queryKey: ['document-tree', documentId, includeObsolete],
     // Picks up other users' edit locks and status changes without a reload.
-    refetchInterval: 20_000,
+    refetchInterval: 60_000,
     queryFn: async () =>
       (await api.get<Item[]>(`/documents/${documentId}/items`, { params: { include_obsolete: includeObsolete } }))
         .data,
