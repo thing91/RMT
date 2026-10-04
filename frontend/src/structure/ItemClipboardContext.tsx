@@ -13,7 +13,7 @@ interface ItemClipboardApi {
 const ItemClipboardContext = createContext<ItemClipboardApi | null>(null)
 
 /** Scoped at the project layout (not per-page) so cutting/copying an item in
- * Tree View and pasting it in Table View — or switching documents in
+ * Document View and pasting it in Table View — or switching documents in
  * between — doesn't lose the clipboard: switching views there is just a
  * route change inside the same provider. */
 export function ItemClipboardProvider({ children }: { children: ReactNode }) {

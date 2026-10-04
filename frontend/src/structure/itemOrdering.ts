@@ -3,7 +3,7 @@ import type { Item } from '../api/types'
 /** `autoFocus` alone leaves the caret at the start of any pre-filled value
  * (browsers don't move it to the end) — for an inline "edit in place" field
  * that's a trap: typing immediately would insert before the existing text
- * instead of appending. Shared by every inline-rename control (Tree View's
+ * instead of appending. Shared by every inline-rename control (Document View's
  * title, Document View's title/description/attributes). */
 export function focusAtEnd(el: HTMLInputElement | HTMLTextAreaElement | null) {
   if (!el) return

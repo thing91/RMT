@@ -96,7 +96,7 @@ function DocumentCard({
           {doc.name}
           <DocumentPresence documentId={doc.id} />
         </div>
-        <span className="text-sm text-blue-600">Open tree →</span>
+        <span className="text-sm text-blue-600">Open →</span>
       </button>
       {groups.length > 0 && (
         <select

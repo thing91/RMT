@@ -171,19 +171,13 @@ export default function ProjectLayout() {
                                   end
                                   className={docLinkClass}
                                 >
-                                  Tree View
+                                  Document View
                                 </NavLink>
                                 <NavLink
                                   to={`/projects/${projectId}/documents/${documentId}/table`}
                                   className={docLinkClass}
                                 >
                                   Table View
-                                </NavLink>
-                                <NavLink
-                                  to={`/projects/${projectId}/documents/${documentId}/document`}
-                                  className={docLinkClass}
-                                >
-                                  Document View
                                 </NavLink>
                               </nav>
                               <div className="mt-1 flex gap-1 px-3">

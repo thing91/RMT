@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useParams } from 'react-router-dom'
+import { NavLink, useParams } from 'react-router-dom'
 import { useDocumentTree, useItemTypes } from '../api/hooks'
 import type { Item } from '../api/types'
 
@@ -19,7 +19,6 @@ function flattenSections(
 
 export default function DocumentToc({ documentId, orgId }: { documentId: string; orgId: string }) {
   const { projectId } = useParams<{ projectId: string }>()
-  const location = useLocation()
   const { data: tree, isLoading } = useDocumentTree(documentId)
   const { data: itemTypes } = useItemTypes(orgId)
 
@@ -34,11 +33,9 @@ export default function DocumentToc({ documentId, orgId }: { documentId: string;
     return <p className="px-3 py-2 text-xs text-slate-400">No sections yet.</p>
   }
 
-  // Table View has no anchor/scroll support for a specific item, so a TOC
-  // click there falls back to Tree View instead of doing nothing.
-  const base = location.pathname.endsWith('/document')
-    ? `/projects/${projectId}/documents/${documentId}/document`
-    : `/projects/${projectId}/documents/${documentId}`
+  // Always the Document View (it scrolls to and highlights the section) —
+  // Table View has no anchor support for a specific item.
+  const base = `/projects/${projectId}/documents/${documentId}`
 
   return (
     <nav className="flex flex-col gap-0.5">

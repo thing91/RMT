@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import HomeLayout from './layouts/HomeLayout'
 import ProjectLayout from './layouts/ProjectLayout'
 import DocumentView from './pages/DocumentView'
@@ -21,7 +21,6 @@ import StandardsAdmin from './pages/StandardsAdmin'
 import SuggestionsPage from './pages/SuggestionsPage'
 import TableView from './pages/TableView'
 import TraceabilityMatrixPage from './pages/TraceabilityMatrix'
-import TreeView from './pages/TreeView'
 import WorkflowsAdmin from './pages/WorkflowsAdmin'
 
 export default function App() {
@@ -51,10 +50,16 @@ export default function App() {
         <Route path="workflows" element={<WorkflowsAdmin />} />
         <Route path="applicability" element={<ApplicabilityPage />} />
         <Route path="releases" element={<LibraryReleasesPage />} />
-        <Route path="documents/:documentId" element={<TreeView />} />
+        <Route path="documents/:documentId" element={<DocumentView />} />
         <Route path="documents/:documentId/table" element={<TableView />} />
-        <Route path="documents/:documentId/document" element={<DocumentView />} />
+        {/* Old Document View address — the document view is now the default. */}
+        <Route path="documents/:documentId/document" element={<ToDocumentRoot />} />
       </Route>
     </Routes>
   )
+}
+
+function ToDocumentRoot() {
+  const location = useLocation()
+  return <Navigate to={location.pathname.replace(/\/document$/, '') + location.search} replace />
 }

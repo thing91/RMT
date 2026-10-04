@@ -28,7 +28,7 @@ interface Props {
  * nesting level, and cut/copy + paste to relocate or duplicate an item
  * (with its whole subtree) elsewhere. Acts on the current selection rather
  * than per-row buttons, matching ReqView's top-of-screen toolbar. Rendered
- * in both Tree View and Table View — the clipboard lives in
+ * in both Document View and Table View — the clipboard lives in
  * ItemClipboardContext (provided above both) so it survives switching
  * between them. */
 export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes, extra }: Props) {

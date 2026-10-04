@@ -1,6 +1,7 @@
 import { apiErrorMessage } from '../api/client'
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useProjectSuggestions } from '../api/collabHooks'
 import {
   useDocumentComments,
   useDocumentTree,
@@ -19,9 +20,15 @@ import type { Item, ItemComment, ItemType, ItemTypeAttribute, Link, LinkType } f
 import { focusAtEnd, planInsertAfter } from '../structure/itemOrdering'
 import AddItemForm from './AddItemForm'
 import AttributeField from './AttributeField'
+import ChangeRequestDialog from './collab/ChangeRequestDialog'
+import { DocumentPresence, ItemPresence } from './collab/PresenceAvatar'
+import StructureLockBar from './collab/StructureLockBar'
+import SuggestionForm from './collab/SuggestionForm'
 import CommentsSection from './CommentsSection'
 import DescriptionPreview from './DescriptionPreview'
-import { DocumentPresence, ItemPresence } from './collab/PresenceAvatar'
+import ItemDetailPanel from './ItemDetailPanel'
+import ItemStructureToolbar from './ItemStructureToolbar'
+import LinkEndpointButtons from './LinkEndpointButtons'
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString()
@@ -31,6 +38,9 @@ interface Props {
   documentId: string
   projectId: string
   orgId: string
+  /** One of two split-view panes: narrower comment margin, details panel
+   * stacked below instead of docked to the right. */
+  compact?: boolean
 }
 
 /** The nested tree response leaves `item.depth` at its default (0) — depth
@@ -183,9 +193,7 @@ function AttributeInlineEdit({
   )
 }
 
-/** Hover-revealed "insert a new item here" affordance between rows — same
- * interaction as Tree View's own gap button, just placed for a flat
- * document listing instead of a recursive tree. */
+/** Hover-revealed "insert a new item here" affordance between rows. */
 function InsertHereRow({ depth, onClick }: { depth: number; onClick: () => void }) {
   return (
     <div className="group/gap relative h-2" style={{ marginLeft: depth * 20 + 24, marginRight: 12 }}>
@@ -232,6 +240,52 @@ function CommentGutterIcon({
   )
 }
 
+/** "Suggest a change" — a formal, tracked proposal (RID) rather than a
+ * free comment. Needs no edit rights and no edit lock. The badge counts the
+ * item's open suggestions. */
+function SuggestGutterIcon({ openCount, onClick }: { openCount: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title={
+        openCount > 0
+          ? `Suggest a change (${openCount} open suggestion${openCount === 1 ? '' : 's'})`
+          : 'Suggest a change'
+      }
+      className={`relative leading-none ${openCount > 0 ? 'text-amber-600 hover:text-amber-700' : 'text-slate-300 hover:text-amber-600'}`}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      </svg>
+      {openCount > 0 && (
+        <span className="absolute -right-1.5 -top-1.5 min-w-3.5 rounded-full bg-amber-500 px-0.5 text-[9px] font-bold leading-3.5 text-white">
+          {openCount}
+        </span>
+      )}
+    </button>
+  )
+}
+
+/** "Request a change" — only on items a workflow has made read-only
+ * (Approved, Implemented, Verified…), where editing needs a change request. */
+function ChangeRequestGutterIcon({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title="Request a change (opens a change request with impact analysis)"
+      className="leading-none text-slate-300 hover:text-violet-600"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+        <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16" />
+        <path d="M3 21v-5h5" />
+      </svg>
+    </button>
+  )
+}
+
 /** Collapsed-by-default preview of the open thread(s) on an item — just
  * enough to read while scanning the document without every comment
  * permanently expanding the page. Clicking it (or the gutter icon) swaps in
@@ -272,6 +326,13 @@ function ItemRow({
   parameters,
   editMode,
   onAddChild,
+  selected,
+  onSelect,
+  onOpenDetails,
+  openSuggestions,
+  onSuggest,
+  onRequestChange,
+  marginClass,
 }: {
   item: Item
   depth: number
@@ -288,6 +349,13 @@ function ItemRow({
   parameters: Parameters<typeof DescriptionPreview>[0]['parameters']
   editMode: boolean
   onAddChild?: () => void
+  selected: boolean
+  onSelect: () => void
+  onOpenDetails: () => void
+  openSuggestions: number
+  onSuggest: () => void
+  onRequestChange: () => void
+  marginClass: string
 }) {
   const updateItem = useUpdateItem()
   const [editingAttrKey, setEditingAttrKey] = useState<string | null>(null)
@@ -301,11 +369,29 @@ function ItemRow({
     )
   }
 
+  const selectedClass = selected ? 'bg-blue-50/70 ring-1 ring-inset ring-blue-200' : ''
+  const detailsButton = (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        onOpenDetails()
+      }}
+      title="Details: workflow, history, links, suggestions"
+      className="hidden shrink-0 rounded px-1.5 text-xs font-normal text-slate-400 hover:bg-slate-100 hover:text-blue-600 group-hover/row:block"
+    >
+      Details ▸
+    </button>
+  )
+
   if (isStructural) {
     return (
-      <div data-item-row={item.id} className="group/row grid grid-cols-[minmax(0,1fr)_280px]">
+      <div
+        data-item-row={item.id}
+        onMouseDown={onSelect}
+        className={`group/row grid ${marginClass} ${selectedClass}`}
+      >
         <div className={`flex items-center gap-2 ${depth === 0 ? 'px-6 pb-1 pt-5' : 'px-6 pb-1 pt-3'}`}>
-          <div className={`min-w-0 flex-1 ${headingClass(depth)}`}>
+          <div className={`min-w-0 flex-1 ${headingClass(depth)} ${item.obsolete ? 'text-slate-400 line-through' : ''}`}>
             {item.number ? <span className="mr-2 text-slate-400">{item.number}</span> : null}
             <InlineEditField
               editable={editMode}
@@ -322,6 +408,7 @@ function ItemRow({
               + Add inside
             </button>
           )}
+          {detailsButton}
         </div>
         <div className="border-l border-slate-100 bg-slate-50/60" />
       </div>
@@ -347,26 +434,51 @@ function ItemRow({
   const textAttrs = badgeAttrs.filter((a) => a.data_type === 'text' || a.data_type === 'rich_text')
   const shortAttrs = badgeAttrs.filter((a) => a.data_type !== 'text' && a.data_type !== 'rich_text')
 
+  // Workflow-locked (e.g. Approved) items can't be edited inline — the way
+  // to change them is a change request (or a suggestion).
+  const contentEditable = editMode && !item.read_only_reason && !item.obsolete
+
   return (
-    <div data-item-row={item.id} className="grid grid-cols-[minmax(0,1fr)_280px]">
+    <div
+      data-item-row={item.id}
+      onMouseDown={onSelect}
+      className={`group/row grid ${marginClass} ${selectedClass}`}
+    >
       <div className="px-6 py-2">
         <div className="rounded-md border border-transparent px-2 py-1.5 hover:border-slate-200">
           <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
-            <div className="flex flex-wrap items-baseline gap-2">
+            <div className={`flex flex-wrap items-baseline gap-2 ${item.obsolete ? 'opacity-60' : ''}`}>
               {item.key && <span className="font-mono text-xs font-medium text-slate-500">{item.key}</span>}
               <ItemPresence itemId={item.id} label={item.key ?? item.title} size={18} />
               <InlineEditField
-                editable={editMode}
+                editable={contentEditable}
                 value={item.title}
                 onSave={(v) => updateItem.mutate({ id: item.id, payload: { title: v }, etag: item.etag }, { onError: alertError })}
-                renderDisplay={() => <span className="text-[15px] font-medium text-slate-800">{item.title}</span>}
+                renderDisplay={() => (
+                  <span className={`text-[15px] font-medium text-slate-800 ${item.obsolete ? 'line-through' : ''}`}>
+                    {item.title}
+                  </span>
+                )}
               />
+              {item.suspect_links > 0 && (
+                <span className="text-xs text-orange-600" title={`${item.suspect_links} suspect link(s) — re-verify`}>
+                  ⚠
+                </span>
+              )}
             </div>
-            <CommentGutterIcon open={isOpen} unresolvedCount={unresolvedThreads.length} onClick={onToggleComments} />
+            <div className="flex items-center gap-2.5">
+              {editMode && <LinkEndpointButtons item={item} />}
+              {detailsButton}
+              {item.has_workflow && item.read_only_reason && !item.obsolete && (
+                <ChangeRequestGutterIcon onClick={onRequestChange} />
+              )}
+              <SuggestGutterIcon openCount={openSuggestions} onClick={onSuggest} />
+              <CommentGutterIcon open={isOpen} unresolvedCount={unresolvedThreads.length} onClick={onToggleComments} />
+            </div>
           </div>
 
           <InlineEditField
-            editable={editMode}
+            editable={contentEditable}
             multiline
             value={item.description_md ?? ''}
             placeholder="Click to add a description…"
@@ -387,12 +499,12 @@ function ItemRow({
 
           {textAttrs.map((attr) => {
             const value = (item.attributes[attr.key] as string) ?? ''
-            if (!value && !editMode) return null
+            if (!value && !contentEditable) return null
             return (
               <div key={attr.id} className="mt-1.5 text-sm text-slate-600">
                 <span className="font-medium text-slate-500">{attr.label}: </span>
                 <InlineEditField
-                  editable={editMode}
+                  editable={contentEditable}
                   multiline
                   value={value}
                   placeholder={`Click to add ${attr.label.toLowerCase()}…`}
@@ -434,7 +546,7 @@ function ItemRow({
                 )
               ))}
             {shortAttrs.map((attr) => {
-              if (editMode && editingAttrKey === attr.key) {
+              if (contentEditable && editingAttrKey === attr.key) {
                 return (
                   <AttributeInlineEdit
                     key={attr.id}
@@ -446,12 +558,12 @@ function ItemRow({
                 )
               }
               const label = badgeValue(attr, item.attributes[attr.key])
-              if (!label && !editMode) return null
+              if (!label && !contentEditable) return null
               return (
                 <span
                   key={attr.id}
-                  onClick={editMode ? () => setEditingAttrKey(attr.key) : undefined}
-                  className={`rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600 ${editMode ? 'cursor-pointer hover:bg-amber-100' : ''}`}
+                  onClick={contentEditable ? () => setEditingAttrKey(attr.key) : undefined}
+                  className={`rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600 ${contentEditable ? 'cursor-pointer hover:bg-amber-100' : ''}`}
                 >
                   {attr.label}: {label ?? '—'}
                 </span>
@@ -481,7 +593,7 @@ function ItemRow({
         </div>
       </div>
 
-      <div className="border-l border-slate-100 bg-slate-50/60 px-3 py-2">
+      <div className="min-w-0 border-l border-slate-100 bg-slate-50/60 px-3 py-2">
         {isOpen ? (
           <div className="rounded-md border border-slate-200 bg-white p-2">
             <CommentsSection itemId={item.id} orgId={orgId} filter="unresolved" />
@@ -498,8 +610,10 @@ function alertError(err: unknown) {
   window.alert(apiErrorMessage(err, 'Could not save this change.'))
 }
 
-export default function DocumentReviewView({ documentId, projectId, orgId }: Props) {
-  const { data: tree, isLoading } = useDocumentTree(documentId)
+export default function DocumentReviewView({ documentId, projectId, orgId, compact }: Props) {
+  const [showObsolete, setShowObsolete] = useState(false)
+  const { data: tree, isLoading } = useDocumentTree(documentId, showObsolete)
+  const { data: openSuggestionList } = useProjectSuggestions(projectId, { status: 'open,outdated' })
   const { data: itemTypes } = useItemTypes(orgId)
   const { data: linkTypes } = useLinkTypes(orgId)
   const { data: projectItems } = useProjectItems(projectId)
@@ -521,11 +635,17 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
   const [resolvedPanelOpen, setResolvedPanelOpen] = useState(false)
 
   // Review mode (default) is the exact read+comment experience non-engineer
-  // reviewers get today; Edit mode layers Tree-View-style inline editing
-  // and insertion on top, for whoever is actually authoring the document.
-  // Permissions aren't re-checked here — same as Tree View, a save just
-  // fails server-side (403) for anyone without an editor role.
+  // reviewers get; Edit mode adds inline editing, insertion and the
+  // structure toolbar for whoever is authoring the document. Permissions
+  // aren't re-checked here — a save fails server-side (403) without an
+  // editor role.
   const [editMode, setEditMode] = useState(false)
+  // The selected row drives the structure toolbar (move/indent/cut/paste);
+  // "Details ▸" opens the full item panel (workflow, history, links…).
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [detailsId, setDetailsId] = useState<string | null>(null)
+  const [suggestingFor, setSuggestingFor] = useState<string | null>(null)
+  const [changeRequestFor, setChangeRequestFor] = useState<string | null>(null)
   const [addingRoot, setAddingRoot] = useState(false)
   const [addingChildOf, setAddingChildOf] = useState<string | null>(null)
   const [insertAfterId, setInsertAfterId] = useState<string | null>(null)
@@ -552,12 +672,16 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
     return () => document.removeEventListener('mousedown', handlePointerDown)
   }, [openItemId])
 
-  // Deep link from the sidebar's Table of contents: ?item=<id> scrolls that
-  // row into view and briefly flashes it, the same "jump to it" affordance
-  // Tree View gives its own ?item= deep link.
+  // Deep link (?item=<id> from the table of contents, notifications,
+  // reviews, RIDs…): scroll the row into view, flash it and open its details.
   useEffect(() => {
     const itemParam = searchParams.get('item')
-    if (!itemParam || !tree) return
+    if (!itemParam || !tree || !itemTypes) return
+    setSelectedId(itemParam)
+    const target = flattenWithDepth(tree).find((i) => i.id === itemParam)
+    const targetType = itemTypes?.find((t) => t.id === target?.item_type_id)
+    // Sections (table-of-contents jumps) just scroll; requirements also open.
+    if (targetType?.behavior !== 'structural') setDetailsId(itemParam)
     const el = document.querySelector(`[data-item-row="${itemParam}"]`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -568,9 +692,15 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
     next.delete('item')
     setSearchParams(next, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, tree])
+  }, [searchParams, tree, itemTypes])
 
   const itemById = useMemo(() => new Map((projectItems ?? []).map((i) => [i.id, i])), [projectItems])
+
+  const openSuggestionsByItem = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const sg of openSuggestionList ?? []) map.set(sg.item_id, (map.get(sg.item_id) ?? 0) + 1)
+    return map
+  }, [openSuggestionList])
 
   const linksByItem = useMemo(() => {
     const map = new Map<string, Link[]>()
@@ -608,15 +738,19 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
   }
 
   const flatTree = tree ? flattenWithDepth(tree) : []
+  const selectedItem = flatTree.find((i) => i.id === selectedId) ?? null
+  const detailsItem = flatTree.find((i) => i.id === detailsId) ?? itemById.get(detailsId ?? '') ?? null
+  const detailsType = itemTypes.find((t) => t.id === detailsItem?.item_type_id)
+  const suggestingItem = flatTree.find((i) => i.id === suggestingFor) ?? null
+  const changeRequestItem = flatTree.find((i) => i.id === changeRequestFor) ?? null
+  const marginClass = compact ? 'grid-cols-[minmax(0,1fr)_200px]' : 'grid-cols-[minmax(0,1fr)_280px]'
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-6">
-        <div className="mb-4 flex items-center justify-between">
+    <div className={`flex h-full overflow-hidden ${compact ? 'flex-col' : ''}`}>
+      <div className={`flex-1 overflow-auto ${compact ? 'p-3' : 'p-6'}`}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <h1 className="flex items-center gap-3 text-lg font-semibold text-slate-800">
-              Document View <DocumentPresence documentId={documentId} size={22} />
-            </h1>
+            <DocumentPresence documentId={documentId} size={22} />
             <div className="flex overflow-hidden rounded-md border border-slate-200">
               <button
                 onClick={() => setEditMode(false)}
@@ -636,6 +770,11 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
               </button>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1 text-xs text-slate-500">
+            <input type="checkbox" checked={showObsolete} onChange={(e) => setShowObsolete(e.target.checked)} />
+            Show obsolete
+          </label>
           {resolvedThreads.length > 0 && (
             <button
               onClick={() => setResolvedPanelOpen((v) => !v)}
@@ -648,7 +787,15 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
               ✓ Resolved comments ({resolvedThreads.length})
             </button>
           )}
+          </div>
         </div>
+
+        {editMode && (
+          <div className="sticky top-0 z-20 -mx-1 mb-2 bg-slate-50/95 px-1 pt-1 backdrop-blur">
+            <StructureLockBar documentId={documentId} />
+            <ItemStructureToolbar selectedItem={selectedItem} allItems={flatTree} itemTypes={itemTypes} />
+          </div>
+        )}
 
         {editMode && (
           <div className="mb-3">
@@ -694,6 +841,16 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
                   onAddChild={
                     isStructural ? () => setAddingChildOf(addingChildOf === item.id ? null : item.id) : undefined
                   }
+                  selected={selectedId === item.id}
+                  onSelect={() => setSelectedId(item.id)}
+                  onOpenDetails={() => {
+                    setSelectedId(item.id)
+                    setDetailsId(item.id)
+                  }}
+                  openSuggestions={openSuggestionsByItem.get(item.id) ?? 0}
+                  onSuggest={() => setSuggestingFor(item.id)}
+                  onRequestChange={() => setChangeRequestFor(item.id)}
+                  marginClass={marginClass}
                 />
                 {editMode && addingChildOf === item.id && (
                   <div style={{ paddingLeft: (item.depth + 1) * 20 + 24 }} className="pb-2 pr-6">
@@ -729,7 +886,40 @@ export default function DocumentReviewView({ documentId, projectId, orgId }: Pro
         </div>
       </div>
 
-      {resolvedPanelOpen && (
+      {detailsItem && detailsType && (
+        <ItemDetailPanel
+          key={detailsItem.id}
+          item={detailsItem}
+          itemType={detailsType}
+          itemTypes={itemTypes}
+          linkTypes={linkTypes}
+          allItems={projectItems ?? flatTree}
+          onClose={() => setDetailsId(null)}
+          orgId={orgId}
+          compact={compact}
+        />
+      )}
+
+      {suggestingItem && (
+        <SuggestionForm
+          item={suggestingItem}
+          itemType={itemTypes.find((t) => t.id === suggestingItem.item_type_id)!}
+          linkTypes={linkTypes}
+          allItems={projectItems ?? flatTree}
+          projectId={projectId}
+          onClose={() => setSuggestingFor(null)}
+        />
+      )}
+
+      {changeRequestItem && (
+        <ChangeRequestDialog
+          item={changeRequestItem}
+          projectId={projectId}
+          onClose={() => setChangeRequestFor(null)}
+        />
+      )}
+
+      {resolvedPanelOpen && !detailsItem && (
         <ResolvedCommentsPanel
           threads={resolvedThreads}
           itemById={itemById}

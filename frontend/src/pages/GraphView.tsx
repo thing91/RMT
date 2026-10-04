@@ -116,7 +116,7 @@ export default function GraphView() {
 
         {!centerId ? (
           <p className="text-sm text-slate-400">
-            Open an item's detail panel (Tree View or Table View) and click "View Graph" to center
+            Open an item's detail panel (Document View or Table View) and click "View Graph" to center
             the graph on it.
           </p>
         ) : (
