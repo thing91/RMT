@@ -22,6 +22,7 @@ from app.api.v1 import (
     parameters,
     projects,
     references,
+    roadmap,
     reviews,
     suggestions,
     table_views,
@@ -54,3 +55,4 @@ api_router.include_router(notifications.router)
 api_router.include_router(reviews.router)
 api_router.include_router(suggestions.router)
 api_router.include_router(library.router)
+api_router.include_router(roadmap.router)

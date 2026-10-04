@@ -4,6 +4,7 @@ from app.models.comment import ItemComment
 from app.models.document import Document
 from app.models.document_group import DocumentGroup
 from app.models.glossary import GlossaryTerm
+from app.models.idea import Idea, IdeaComment, IdeaVote, ReleaseNote
 from app.models.item import Item
 from app.models.item_version import ItemVersion
 from app.models.item_type import ItemType, ItemTypeAttribute
@@ -75,4 +76,8 @@ __all__ = [
     "ProjectLibrary",
     "ApplicabilityRecord",
     "LibraryRule",
+    "Idea",
+    "IdeaVote",
+    "IdeaComment",
+    "ReleaseNote",
 ]
