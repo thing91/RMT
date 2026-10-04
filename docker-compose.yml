@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rmt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rmt}
+      POSTGRES_DB: ${POSTGRES_DB:-rmt_kna}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rmt}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-rmt}:${POSTGRES_PASSWORD:-rmt}@db:5432/${POSTGRES_DB:-rmt_kna}
+      JWT_SECRET: '${JWT_SECRET:?set a real JWT_SECRET in .env, e.g. output of openssl rand -hex 32}'
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost"]}'
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
+      # Dev fallback (any username + any non-empty password) is only ever
+      # appropriate for a review server behind a firewall/VPN that nobody
+      # untrusted can reach — flip to false and fill in LDAP_* before
+      # sharing this with anyone beyond that.
+      DEV_AUTH_FALLBACK: ${DEV_AUTH_FALLBACK:-true}
+      LDAP_URL: ${LDAP_URL:-}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
+      LDAP_USER_SEARCH_FILTER: '${LDAP_USER_SEARCH_FILTER:-(uid={username})}'
+      LDAP_USER_DN_TEMPLATE: '${LDAP_USER_DN_TEMPLATE:-uid={username},ou=people,dc=example,dc=com}'
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-rmt-kna@example.com}
+    volumes:
+      - git_sync_repos:/app/git_sync_repos
+      - mail_outbox:/app/mail_outbox
+      - reference_files:/app/reference_files
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-80}:80"
+
+volumes:
+  pgdata:
+  git_sync_repos:
+  mail_outbox:
+  reference_files:

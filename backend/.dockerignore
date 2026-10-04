@@ -1,0 +1,12 @@
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+git_sync_repos
+mail_outbox
+reference_files
+*.log
+setup_postgres.log

@@ -1,0 +1,18 @@
+backend/.venv/
+backend/.env
+backend/__pycache__/
+backend/*.log
+backend/git_sync_repos/
+backend/mail_outbox/
+backend/reference_files/
+**/__pycache__/
+*.pyc
+
+frontend/node_modules/
+frontend/dist/
+
+# Deployment secrets (docker-compose reads this at the repo root) — only
+# .env.example is meant to be committed.
+/.env
+
+.DS_Store

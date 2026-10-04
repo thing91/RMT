@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Brief highlight for a row scrolled to via a deep link (e.g. the sidebar's
+   Table of contents) — fades out on its own, no JS timer needed to remove
+   the class beyond the one that adds/removes it. */
+@keyframes rmt-toc-flash {
+  from { background-color: #fef3c7; }
+  to { background-color: transparent; }
+}
+.rmt-toc-flash {
+  animation: rmt-toc-flash 1.5s ease-out;
+}

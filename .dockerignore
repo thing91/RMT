@@ -1,0 +1,17 @@
+.git
+backend/.venv
+backend/__pycache__
+backend/**/__pycache__
+backend/*.log
+backend/setup_postgres.log
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/git_sync_repos
+backend/mail_outbox
+backend/reference_files
+frontend/node_modules
+frontend/dist
+.env
+.env.*
+!.env.example
