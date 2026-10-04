@@ -570,6 +570,14 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
                               onDoubleClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedId(item.id)
+                                if (c.key === 'status' && item.has_workflow) {
+                                  setEditError('Status follows the workflow — use the transitions in the item details.')
+                                  return
+                                }
+                                if (item.read_only_reason) {
+                                  setEditError(item.read_only_reason)
+                                  return
+                                }
                                 setEditingCell({ itemId: item.id, column: c.key })
                                 setEditError(null)
                               }}

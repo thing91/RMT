@@ -413,7 +413,7 @@ function ItemRow({
               </span>
             )}
             {statusAttr &&
-              (editMode && editingAttrKey === 'status' ? (
+              (editMode && editingAttrKey === 'status' && !item.has_workflow ? (
                 <AttributeInlineEdit
                   attr={statusAttr}
                   value={item.attributes[statusAttr.key]}
@@ -423,8 +423,9 @@ function ItemRow({
               ) : (
                 (statusLabel || editMode) && (
                   <span
-                    onClick={editMode ? () => setEditingAttrKey('status') : undefined}
-                    className={`rounded px-1.5 py-0.5 text-xs ${statusColorClass} ${editMode ? 'cursor-pointer hover:opacity-80' : ''}`}
+                    onClick={editMode && !item.has_workflow ? () => setEditingAttrKey('status') : undefined}
+                    title={item.has_workflow ? 'Status follows the workflow — change it from the item details' : undefined}
+                    className={`rounded px-1.5 py-0.5 text-xs ${statusColorClass} ${editMode && !item.has_workflow ? 'cursor-pointer hover:opacity-80' : ''}`}
                   >
                     {statusLabel ?? 'Set status'}
                   </span>

@@ -178,29 +178,12 @@ APP_BASE_URL=https://your-deployed-frontend-url
   link that already exists (same source/target/type) is now rejected with a
   friendly 409 instead of silently duplicating (there's a DB unique
   constraint backing this up too).
-- **Review & approval workflow** (§ not in the brief — added by request,
-  modeled loosely on DOORS/Polarion):
-  - Assign **reviewers**/**approvers** per document from the sidebar's
-    "⚖ Review & approval" panel — distinct from the project-wide RBAC
-    `reviewer` role (`project_access`), which only gates read access; this
-    is sign-off *authority* (`document_workflow_roles`).
-  - In Item Types admin, an enum attribute's options can be flagged
-    `requires_approval` (only an assigned approver, or a project admin, can
-    set an item's Status to it — a plain edit is rejected with a 422
-    explaining why) and/or `notify_reviewers` (a plain edit into that value
-    emails the document's reviewers+approvers that something needs
-    attention). Seeded on the `status` attribute: `In Review` → notify,
-    `Approved` → requires approval.
-  - The detail panel shows "Approve → X" buttons for any gated status the
-    item isn't already at, with an optional note; approving stamps
-    `approved_by`/`approved_at` and is flagged **stale** if the item is
-    edited again afterward (`approval_stale`, banner in the detail panel).
-  - "Approve whole document" (same sidebar panel) bulk-approves every
-    content item with a matching gated status in one action.
-  - Every transition above emails the relevant people — self-contained
-    (project/document/item/status/who/optional note + a deep link straight
-    to that item, `?item=<id>` on the Tree/Table route) rather than a bare
-    "something changed" ping. Check `backend/mail_outbox/` in dev mode.
+- **Review & approval roles per document** — the sidebar's "⚖ Review &
+  approval" panel assigns **reviewers**/**approvers** per document
+  (`document_workflow_roles`): sign-off *authority* used by workflow
+  transitions (`doc:approver` / `doc:reviewer`), distinct from the project
+  RBAC `reviewer` role. The same panel runs one transition on every eligible
+  item of the document at once (e.g. approve everything In Review).
 - **Comments** (§ not in the brief — added by request, GitHub-PR/Google-Docs
   style rather than arbitrary nesting) — a "Comments" section at the bottom
   of every content item's detail panel (and inline in Document View's right
@@ -210,9 +193,10 @@ APP_BASE_URL=https://your-deployed-frontend-url
   resolved thread stays visible, greyed in, with who resolved it and when,
   and can be reopened. Type `@` in the comment box to pick a user from the
   org directory (autocomplete, same list the workflow role pickers use) —
-  mentioning someone emails them a link straight to the comment. Otherwise
-  doesn't send email notifications yet (a plain new comment/reply, with no
-  `@mention`, stays silent) — see "Known simplifications".
+  mentioning someone emails them a link straight to the comment. Every new
+  comment/reply also notifies the item's watchers and the thread's
+  participants (bell + email); commenting makes you a watcher. A thread can
+  be turned into a formal change suggestion ("→ Make it a suggestion").
 - **Document View** (§ not in the brief — added by request) — every item in
   reading order like a printed spec: numbered section headings, each
   requirement as a borderless block (ID, description, status/type badges,
@@ -260,25 +244,108 @@ APP_BASE_URL=https://your-deployed-frontend-url
   round-trip shape as a requirements export. A consistency report surfaces
   unused terms / undefined references.
 - **Baselines** — freeze every item/link in the project as of right now
-  under a name; the snapshot is stored as JSON. The Git Sync Log below it
-  shows every local commit triggered by item writes (§7) — the two aren't
-  tied together yet (`baselines.git_commit_sha` stays null), and a baseline
-  doesn't yet freeze parameter values or which standard version was cited
-  (§5.3/§5.4 both call this out as important — see "Known simplifications").
-- **Deleting an item** — the detail panel's "Delete" button asks for
-  confirmation and, for a Section, tells you up front how many nested
-  items will go with it.
+  under a name: the exact item versions, parameter values and the
+  applicability matrix. Tick "Milestone" (project admins) to make the frozen
+  items read-only outside Draft until a change request is accepted. The Git
+  Sync Log below shows every local commit triggered by item writes (§7) —
+  not tied to baselines yet (`baselines.git_commit_sha` stays null).
+- **Deleting an item** — requirements are retired with the "Make obsolete"
+  transition, never deleted, so history and traceability survive (the tree
+  hides obsolete items unless "Show obsolete" is ticked). Only a brand-new,
+  untouched item (version 1, no links, no comments) or an empty section can
+  be deleted.
 - **Roles** — sign out and confirm reads still work on the public Demo
   Project but every "Add"/"Save"/"Delete" now fails with "Requires at
   least 'editor' role..."; sign back in as `admin` to restore editing.
 
+## Concurrency, workflow & change management
+
+Implements `wymagania-wspolbieznosc-i-workflow.md` (the plan and its status
+are in `docs/PLAN-wdrozenia.md`). Backend tests: `cd backend &&
+.venv/Scripts/python.exe -m pytest` (runs against an isolated `rmt_test`
+schema in the dev database; `pip install -r requirements-dev.txt` first).
+
+- **Permissions** — every project role maps to named permissions
+  (`item.edit`, `structure.edit`, `lock.override`, `suggestion.resolve`,
+  `applicability.decide/approve`, `workflow.configure`, …; see
+  `app/services/permissions.py`). An org can grant/revoke single
+  permissions per role (`PUT /organizations/{id}/role-permissions`). An
+  **org admin** (`users.org_role = "admin"`, the seeded `admin`) is project
+  admin everywhere in the org and holds the org permissions
+  (`roadmap.manage`, `library.release`, `workflow.configure_org`).
+- **Edit locks (leases)** — "✎ Edit" in the item details takes the item's
+  lock, a heartbeat keeps it alive, Save/Cancel (or closing the tab, via
+  `sendBeacon`) releases it, and it expires on its own after
+  `EDIT_LOCK_TIMEOUT_MINUTES` (default 10) — no orphaned locks. Others see
+  "✎ Anna is editing (3 min)" in the tree and a read-only panel, can ask to
+  be notified when it's free, and `lock.override` holders can release or
+  take it over (audited, previous holder notified).
+- **Optimistic concurrency** — every item has a version (`ETag:
+  "<id>:<n>"`); every content write must send `If-Match`, otherwise 428; a
+  stale one gets 412 with a diff of what changed, shown as a conflict
+  dialog (discard mine / apply mine on top / copy mine). Applies to API
+  clients too, not just the UI.
+- **Structure lock** — moving/reordering takes a short implicit lease on
+  the document structure (others' moves wait ~90 s); "⇅ Reorganize…" takes
+  an explicit one. Structure and content never block each other.
+- **Versions & audit** — every content change is a new version
+  (`item_versions`): History tab with word diffs between any two versions
+  and the exact text of every approved version. Workflow transitions,
+  overrides, deletions, permission changes etc. go to the append-only
+  `audit_events` log (project → "Change requests & suspect links" → Audit).
+- **Configurable workflows** — `/admin/workflows` (org default per item
+  type) and a project's "Workflows" page (override). Templates: Basic,
+  Change-managed (default for requirements), Regulated (e-signature,
+  author can't approve own requirement, no open comments/Major
+  suggestions, verification tied to passing linked tests) and Test case.
+  Each transition has roles, conditions and actions; edit as JSON.
+  The status attribute's values are generated from the workflow states, and
+  status can only change through transitions.
+- **Change management** — Approved → "Request change" creates a change
+  request with impact analysis (linked items + children); after it's
+  accepted the item is Draft again, and re-approval flags every linked item
+  **suspect** (⚠ in the tree, re-verify from the Links tab or the
+  "Change requests & suspect links" page).
+- **Reviews** — project → Reviews: a review covers chosen items (pinned to
+  the reviewed version), has required reviewers who vote, collects change
+  suggestions, can require all Major (or all) suggestions resolved and/or a
+  complete applicability matrix before closing, and can approve all its
+  items on close.
+- **Change suggestions (RIDs)** — "Suggest change" works for anyone who
+  can read the item, without edit rights or the edit lock, in parallel.
+  Each has an ID (SUG-0001), target field, word diff, justification,
+  type/severity and its own discussion. The owner (`owner` attribute) or
+  `suggestion.resolve` accepts (applied as a normal versioned write
+  credited to the author), accepts with modification, or rejects with a
+  reason. Suggestions go Outdated when the field changes underneath them;
+  accepting one on an Approved item raises a change request and applies it
+  once the item is editable. Project-wide list + Excel RID export.
+- **Notifications** — the bell in the top bar (polls every 30 s) plus email
+  for status changes, comments, mentions, suggestions, review invites, lock
+  overrides; "☆ Watch" any item.
+- **Generic requirements library** — create a project of kind "Generic
+  requirements library"; its documents are subsystems. "Library releases"
+  freezes it as e.g. `GEN-SAT v1.0`. A project's "Applicability matrix"
+  imports a release as one record per requirement (a reference, not a
+  copy), each needing a decision: Applicable, Applicable with modification
+  (creates a project copy that then goes through the normal requirement
+  workflow; the diff vs. the library is shown), or Not applicable
+  (justification + approval by `applicability.approve`). Dashboard by
+  subsystem, completeness check, new-release diff with adopt / stay
+  (justified), suspect flags on changed/removed requirements, Excel and
+  ReqIF 1.2 export. Library text can use `{{param:KEY}}`, resolved with the
+  consuming project's parameters; library rules over mission attributes
+  (e.g. "no propulsion → suggest Not applicable") only ever suggest.
+- **Roadmap** — top bar → Roadmap: submit improvement ideas (similar ideas
+  are offered first), vote (one per user, voting follows the idea), kanban
+  by Planned / In progress / Released with Now/Soon/Later horizons, full
+  list with status facets and search, status history, official product-team
+  replies, internal priority/effort/notes, duplicate merging (votes and
+  followers move), release notes. Ideas are visible to all users; another
+  organization's name is shown as "Organization hidden".
+
 ## Known simplifications (flagged, not forgotten)
 
-- **Comments only email on `@mention`.** A new comment, a reply, or a
-  resolved/reopened thread doesn't notify anyone by itself — no equivalent
-  of the workflow's "review requested"/"approved" emails exists for plain
-  comment activity — so keeping up with a discussion still means checking
-  back in the app unless someone explicitly `@mentions` you.
 - **Alembic is set up, but the pre-Alembic history isn't captured as
   individual migrations.** Everything up to and including document groups
   was folded into one `baseline` revision generated by autogenerating
@@ -291,11 +358,12 @@ APP_BASE_URL=https://your-deployed-frontend-url
 - **Auth is dev-mode by default** (see "Logging in" above) — no MFA/SSO,
   and granting/revoking project access (`POST/DELETE .../access`) has no
   admin-approval queue (§13.5 is explicitly Phase 3).
-- **No org-admin role.** Reading the schema/glossary/standards is correctly
-  open to everyone per §13.3, but so is *writing* item types/link
-  types/standards today by anyone logged in (glossary/standards) or even
-  anonymously (item types/link types) — there's no org-level admin role
-  modeled yet to gate that with (only per-project roles exist).
+- **Org admin exists but doesn't gate the schema yet.** Workflows, role
+  permissions, the roadmap and library releases are gated by org-level
+  permissions, but *writing* item types/link types/standards/glossary is
+  still open to anyone logged in (item/link types even anonymously), as
+  before — switching those to `org.admin` would change existing behavior,
+  so it's left for a deliberate decision.
 - **Git sync is local-only.** No push to a GitLab remote, no inbound
   webhook receiver — both need a real GitLab instance to build/test
   against. Deleting a Section also only removes its own YAML file, not its
@@ -310,17 +378,23 @@ APP_BASE_URL=https://your-deployed-frontend-url
   (§8.2); XLSX and HTML both work today. Export is synchronous (no job
   queue) since it's fast enough for a single document — revisit before
   real project sizes.
-- **Workflow is a project-specific convention, not a generic engine.** The
-  gated attribute is always whichever `enum` attribute is keyed exactly
-  `"status"` — matching how every seeded content type already defines one —
-  rather than letting an org configure an arbitrary field/workflow. Also:
-  approval history is "latest only" (`items.approved_by_id`/`approved_at`),
-  not a full audit log.
+- **Workflow/lock edges.** Lock expiry is lazy: "notify me when free"
+  fires on an explicit release or override, not when a lease silently
+  expires. Lock and tree state is refreshed by polling (15–20 s), not
+  pushed. Workflow conditions/actions are a fixed code registry
+  (`app/services/workflow_engine.py`), so a new kind of rule is code, not
+  configuration. Link edits don't create item versions. Real-time co-editing
+  (Yjs) is out of scope, as the spec says.
+- **Data migrations call app code.** The Alembic revision that introduced
+  workflows/versions bootstraps data through `app.services.bootstrap`, so
+  replaying old migrations on a fresh database depends on today's models —
+  a fresh dev DB should use `app.seed` (which calls `create_all`) instead.
+- **ReqIF is export-only** and covers the applicability matrix, not
+  documents; ReqIF import isn't built.
 - **Parameters have no unit conversion** (Nm vs. N·m vs. lb·ft, as the
-  brief itself flags) and baselines don't freeze parameter values or cited
-  standard versions yet — an export "as of baseline X" still shows today's
-  live parameter values/standard versions, not what was true at baseline
-  time.
+  brief itself flags). Baselines now freeze parameter values, but not which
+  standard version was cited, and exports don't yet render "as of baseline
+  X".
 - **Standards/Reference Document PDFs are stored on local disk**
   (`backend/reference_files/`), not S3 — fine for one machine, not for a
   real multi-instance deployment. There's no in-app PDF page viewer either;

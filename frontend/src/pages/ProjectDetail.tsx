@@ -214,6 +214,7 @@ function BaselinesSection({ projectId }: { projectId: string }) {
   const createBaseline = useCreateBaseline(projectId)
   const deleteBaseline = useDeleteBaseline()
   const [name, setName] = useState('')
+  const [locks, setLocks] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   function submit(e: FormEvent) {
@@ -221,7 +222,7 @@ function BaselinesSection({ projectId }: { projectId: string }) {
     if (!name.trim()) return
     setError(null)
     createBaseline.mutate(
-      { name: name.trim() },
+      { name: name.trim(), locks_items: locks },
       {
         onSuccess: () => setName(''),
         onError: (err) => setError(apiErrorMessage(err, 'Could not create this baseline.')),
@@ -246,6 +247,13 @@ function BaselinesSection({ projectId }: { projectId: string }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+        <label
+          className="flex items-center gap-1 text-xs text-slate-600"
+          title="Milestone baseline: frozen items become read-only (outside Draft) until a change request is accepted"
+        >
+          <input type="checkbox" checked={locks} onChange={(e) => setLocks(e.target.checked)} />
+          Milestone — lock frozen items
+        </label>
         <button
           type="submit"
           className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
@@ -268,7 +276,14 @@ function BaselinesSection({ projectId }: { projectId: string }) {
           <tbody>
             {(baselines ?? []).map((b) => (
               <tr key={b.id} className="border-b border-slate-100 last:border-0">
-                <td className="px-3 py-2 font-medium text-slate-800">{b.name}</td>
+                <td className="px-3 py-2 font-medium text-slate-800">
+                  {b.name}
+                  {b.locks_items && (
+                    <span className="ml-2 rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700">
+                      🔒 milestone
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-slate-500">
                   {new Date(b.created_at).toLocaleString()}
                 </td>

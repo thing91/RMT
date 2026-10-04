@@ -456,9 +456,9 @@ export function useBaselines(projectId?: string) {
 }
 
 export function useCreateBaseline(projectId: string) {
-  const invalidate = useInvalidate(['baselines'])
+  const invalidate = useInvalidate(['baselines', 'document-tree', 'project-items'])
   return useMutation({
-    mutationFn: async (payload: { name: string }) =>
+    mutationFn: async (payload: { name: string; description?: string; locks_items?: boolean }) =>
       (await api.post<Baseline>(`/projects/${projectId}/baselines`, payload)).data,
     onSuccess: invalidate,
   })
