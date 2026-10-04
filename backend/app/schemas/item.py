@@ -80,3 +80,7 @@ class ItemRead(ItemBase):
     read_only_reason: str | None = None
     has_workflow: bool = False
     suspect_links: int = 0
+    # Library-derived copy ("Applicable with modification") or null for a
+    # project-specific requirement.
+    source_item_id: uuid.UUID | None = None
+    source_version: int | None = None

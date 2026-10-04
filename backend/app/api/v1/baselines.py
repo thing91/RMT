@@ -18,6 +18,25 @@ from app.services.permissions import can_read, has_permission
 router = APIRouter(tags=["baselines"])
 
 
+def _applicability_snapshot(db: Session, project_id) -> list[dict]:
+    from app.models.library import ApplicabilityRecord
+
+    rows = db.query(ApplicabilityRecord).filter(ApplicabilityRecord.project_id == project_id).all()
+    return [
+        {
+            "source_item_id": str(r.source_item_id),
+            "source_version": r.source_version,
+            "release": r.release.name,
+            "status": r.status,
+            "rationale": r.rationale,
+            "modified_item_id": str(r.modified_item_id) if r.modified_item_id else None,
+            "decided_by": r.decided_by.display_name if r.decided_by else None,
+            "approved_by": r.approved_by.display_name if r.approved_by else None,
+        }
+        for r in rows
+    ]
+
+
 def _parameter_snapshot(db: Session, project_id) -> list[dict]:
     from app.models.parameter import Parameter
     from app.services.parameters import compute_all_values
@@ -108,6 +127,8 @@ def create_baseline(
         # Frozen alongside the items so an export "as of this baseline"
         # can show the parameter values that were true at the time.
         "parameters": _parameter_snapshot(db, project_id),
+        # The approved applicability matrix is part of the project baseline.
+        "applicability": _applicability_snapshot(db, project_id),
         "links": [
             {
                 "id": str(link.id),

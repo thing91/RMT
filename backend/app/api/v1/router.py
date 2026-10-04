@@ -11,6 +11,7 @@ from app.api.v1 import (
     history,
     item_types,
     items,
+    library,
     link_types,
     links,
     locks,
@@ -52,3 +53,4 @@ api_router.include_router(history.router)
 api_router.include_router(notifications.router)
 api_router.include_router(reviews.router)
 api_router.include_router(suggestions.router)
+api_router.include_router(library.router)

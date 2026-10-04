@@ -38,6 +38,12 @@ class Item(Base, IdMixin, TimestampMixin):
     # (items are retired, never physically deleted). Kept as a column so
     # "hide obsolete" filters stay a cheap WHERE clause.
     obsolete_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Library-derived copy ("Applicable with modification"): which library
+    # requirement and version it was copied from. Null = project-specific.
+    source_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id", ondelete="SET NULL"), nullable=True
+    )
+    source_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # §workflow (app/services/workflow.py): latest sign-off only, not a full
     # history — a status value flagged `requires_approval` can only be set
@@ -50,8 +56,10 @@ class Item(Base, IdMixin, TimestampMixin):
 
     document: Mapped["Document"] = relationship(back_populates="items")
     item_type: Mapped["ItemType"] = relationship()
-    parent: Mapped["Item | None"] = relationship(remote_side="Item.id", back_populates="children")
+    parent: Mapped["Item | None"] = relationship(
+        remote_side="Item.id", back_populates="children", foreign_keys=[parent_id]
+    )
     children: Mapped[list["Item"]] = relationship(
-        back_populates="parent", cascade="all, delete-orphan"
+        back_populates="parent", cascade="all, delete-orphan", foreign_keys=[parent_id]
     )
     approved_by: Mapped["User | None"] = relationship(foreign_keys=[approved_by_id])

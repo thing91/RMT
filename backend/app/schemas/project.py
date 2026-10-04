@@ -12,7 +12,7 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    pass
+    kind: Literal["project", "library"] = "project"
 
 
 class ProjectRead(ProjectBase):
@@ -20,6 +20,9 @@ class ProjectRead(ProjectBase):
 
     id: uuid.UUID
     org_id: uuid.UUID
+    kind: str = "project"
+    mission_attribute_defs: list = []
+    mission_attributes: dict = {}
 
 
 class DocumentBase(BaseModel):

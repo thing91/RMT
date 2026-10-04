@@ -107,6 +107,13 @@ def get_effective_role(db: Session, project_id: uuid.UUID, user_id: uuid.UUID | 
 def can_read(db: Session, project: Project, user_id: uuid.UUID | None) -> bool:
     if project.visibility == "public":
         return True
+    if project.kind == "library" and user_id is not None:
+        # A generic requirements library is an org-wide asset: every member
+        # of the organization may read (and import) it; writing still needs
+        # an explicit role on the library project.
+        user = db.get(User, user_id)
+        if user is not None and user.org_id == project.org_id:
+            return True
     return get_effective_role(db, project.id, user_id) is not None
 
 

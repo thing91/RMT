@@ -36,6 +36,7 @@ class ReviewCreate(BaseModel):
     participants: list[ParticipantIn] = []
     close_requires_resolved: str = "major"  # none | major | all
     require_all_votes: bool = True
+    require_applicability_complete: bool = False
     due_date: datetime | None = None
 
 
@@ -44,6 +45,7 @@ class ReviewUpdate(BaseModel):
     description: str | None = None
     close_requires_resolved: str | None = None
     require_all_votes: bool | None = None
+    require_applicability_complete: bool | None = None
     due_date: datetime | None = None
 
 
@@ -96,6 +98,7 @@ class ReviewRead(BaseModel):
     outcome: str | None
     close_requires_resolved: str
     require_all_votes: bool
+    require_applicability_complete: bool = False
     created_by: str | None
     created_at: datetime
     closed_by: str | None
@@ -178,6 +181,17 @@ def close_blockers(db: Session, review: Review) -> list[str]:
             blockers.append(f"{major} open Major suggestion(s) must be resolved first.")
         if review.close_requires_resolved == "all" and minor:
             blockers.append(f"{minor} open Minor suggestion(s) must be resolved first.")
+    if review.require_applicability_complete:
+        from app.models.library import ApplicabilityRecord
+
+        open_records = (
+            db.query(ApplicabilityRecord)
+            .filter(ApplicabilityRecord.project_id == review.project_id,
+                    ApplicabilityRecord.status.in_(("to_be_assessed", "not_applicable_pending")))
+            .count()
+        )
+        if open_records:
+            blockers.append(f"The applicability matrix has {open_records} undecided record(s).")
     return blockers
 
 
@@ -193,6 +207,7 @@ def _read(db: Session, review: Review) -> ReviewRead:
         outcome=review.outcome,
         close_requires_resolved=review.close_requires_resolved,
         require_all_votes=review.require_all_votes,
+        require_applicability_complete=review.require_applicability_complete,
         created_by=review.created_by.display_name if review.created_by else None,
         created_at=review.created_at,
         closed_by=review.closed_by.display_name if review.closed_by else None,
@@ -299,6 +314,7 @@ def create_review(
         description=payload.description,
         close_requires_resolved=payload.close_requires_resolved,
         require_all_votes=payload.require_all_votes,
+        require_applicability_complete=payload.require_applicability_complete,
         created_by_id=user.id,
         due_date=payload.due_date,
     )

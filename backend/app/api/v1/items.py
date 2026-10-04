@@ -202,6 +202,8 @@ def to_item_read(item: Item, ctx: ReadContext | None = None, db: Session | None 
         read_only_reason=ctx.read_only_reason(item),
         has_workflow=ctx.definition(item.item_type_id) is not None,
         suspect_links=ctx.suspect.get(item.id, 0),
+        source_item_id=item.source_item_id,
+        source_version=item.source_version,
     )
 
 

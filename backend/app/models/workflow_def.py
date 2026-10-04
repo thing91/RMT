@@ -113,6 +113,9 @@ class Review(Base, IdMixin, TimestampMixin):
     # Which open suggestions block closing: "none" | "major" | "all"
     close_requires_resolved: Mapped[str] = mapped_column(String(10), default="major")
     require_all_votes: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Closing also requires the project's applicability matrix to be
+    # complete (no "To be assessed" records left).
+    require_applicability_complete: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     outcome: Mapped[str | None] = mapped_column(String(30), nullable=True)
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
