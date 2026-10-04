@@ -294,7 +294,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
     const original = column === 'title' ? item.title : (item.description_md ?? '')
     if (editText === original) return
     updateItem.mutate(
-      { id: item.id, payload: { [field]: editText } },
+      { id: item.id, payload: { [field]: editText }, etag: item.etag },
       { onError: (err) => setEditError(apiErrorMessage(err, 'Could not save this change.')) },
     )
   }
@@ -591,6 +591,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact }: Prop
                                         {
                                           id: item.id,
                                           payload: { attributes: { ...item.attributes, [c.key]: v } },
+                                          etag: item.etag,
                                         },
                                         {
                                           onError: (err) =>

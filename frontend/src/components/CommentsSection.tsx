@@ -11,6 +11,7 @@ import {
   useUpdateComment,
 } from '../api/hooks'
 import type { ItemComment, OrgUser } from '../api/types'
+import { useSuggestionComments } from '../api/collabHooks'
 import MentionTextarea from './MentionTextarea'
 
 function formatTime(iso: string): string {
@@ -196,10 +197,12 @@ function Thread({
   thread,
   currentUserId,
   users,
+  onConvert,
 }: {
   thread: ItemComment
   currentUserId: string | undefined
   users: OrgUser[]
+  onConvert?: (comment: ItemComment) => void
 }) {
   const createComment = useCreateComment(thread.item_id)
   const resolveComment = useResolveComment()
@@ -269,6 +272,15 @@ function Thread({
         <button onClick={toggleResolve} className="text-xs font-medium text-slate-500 hover:text-slate-800">
           {thread.resolved ? 'Reopen' : '✓ Mark resolved'}
         </button>
+        {onConvert && currentUserId && (
+          <button
+            onClick={() => onConvert(thread)}
+            title="Turn this discussion into a formal change suggestion that must be resolved"
+            className="text-xs font-medium text-slate-500 hover:text-blue-700"
+          >
+            → Make it a suggestion
+          </button>
+        )}
         {actionError && <span className="text-xs text-red-600">⚠ {actionError}</span>}
       </div>
     </div>
@@ -283,6 +295,9 @@ export default function CommentsSection({
   itemId,
   orgId,
   filter = 'all',
+  suggestionId,
+  onConvert,
+  title = 'Comments',
 }: {
   itemId: string
   orgId: string
@@ -290,9 +305,17 @@ export default function CommentsSection({
    * so a resolved discussion doesn't clutter the reading view; it stays
    * reachable from the document-level "Resolved comments" panel instead. */
   filter?: 'all' | 'unresolved'
+  /** Show/post the discussion thread of this change suggestion instead of
+   * the item's general comments. */
+  suggestionId?: string
+  /** Offer "make it a suggestion" on each thread. */
+  onConvert?: (comment: ItemComment) => void
+  title?: string
 }) {
   const { user } = useAuth()
-  const { data: allThreads, isLoading } = useItemComments(itemId)
+  const itemThreads = useItemComments(suggestionId ? undefined : itemId)
+  const suggestionThreads = useSuggestionComments(suggestionId)
+  const { data: allThreads, isLoading } = suggestionId ? suggestionThreads : itemThreads
   const { data: orgUsers } = useOrgUsers(orgId)
   const createComment = useCreateComment(itemId)
 
@@ -302,13 +325,13 @@ export default function CommentsSection({
   const resolvedCount = threads.filter((t) => t.resolved).length
 
   function submitTopLevel(body: string) {
-    createComment.mutate({ body })
+    createComment.mutate(suggestionId ? { body, suggestion_id: suggestionId } : { body })
   }
 
   return (
     <div className="border-t border-slate-200 pt-4">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Comments{threads.length > 0 && ` (${openCount} open${resolvedCount ? `, ${resolvedCount} resolved` : ''})`}
+        {title}{threads.length > 0 && ` (${openCount} open${resolvedCount ? `, ${resolvedCount} resolved` : ''})`}
       </h3>
 
       <div className="mb-3">
@@ -319,7 +342,7 @@ export default function CommentsSection({
 
       <div className="space-y-2">
         {threads.map((thread) => (
-          <Thread key={thread.id} thread={thread} currentUserId={user?.id} users={users} />
+          <Thread key={thread.id} thread={thread} currentUserId={user?.id} users={users} onConvert={onConvert} />
         ))}
         {!isLoading && threads.length === 0 && (
           <p className="text-xs text-slate-400">

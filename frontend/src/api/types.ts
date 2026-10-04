@@ -1,3 +1,5 @@
+import type { FieldChange, VersionSnapshot } from './collabTypes'
+
 export type AttributeDataType =
   | 'text'
   | 'rich_text'
@@ -15,9 +17,8 @@ export interface EnumOption {
   value: string
   label: string
   deprecated: boolean
-  // §workflow — only meaningful on the attribute keyed "status".
-  requires_approval?: boolean
-  notify_reviewers?: boolean
+  // On the workflow-managed "status" attribute: the state's color.
+  color?: string | null
 }
 
 export interface ItemTypeAttribute {
@@ -83,6 +84,25 @@ export interface Item {
   approved_by: string | null
   approved_at: string | null
   approval_stale: boolean
+  // Concurrency: content version (ETag = "<id>:<version>") and live lock.
+  version: number
+  etag: string | null
+  lock: EditLock | null
+  // Workflow: retired items and why content can't be edited right now.
+  obsolete: boolean
+  read_only_reason: string | null
+  has_workflow: boolean
+  suspect_links: number
+}
+
+export interface EditLock {
+  scope: 'item' | 'structure'
+  target_id: string
+  user_id: string
+  user_name: string
+  acquired_at: string
+  expires_at: string
+  implicit: boolean
 }
 
 export interface WorkflowRole {
@@ -233,6 +253,8 @@ export interface Baseline {
   created_by: string | null
   created_at: string
   item_count: number
+  description: string | null
+  locks_items: boolean
 }
 
 export interface GitCommit {
@@ -253,6 +275,7 @@ export interface ItemComment {
   resolved: boolean
   resolved_by: string | null
   resolved_at: string | null
+  suggestion_id: string | null
   replies: ItemComment[]
 }
 
@@ -313,6 +336,22 @@ export interface ParameterUsage {
   item_title: string
 }
 
-export interface ApiErrorBody {
-  detail?: string | { msg?: string; loc?: (string | number)[]; type?: string }[]
+/** Structured error detail used by the concurrency/workflow endpoints
+ * (423 locked, 412 version conflict, 409 read-only, 422 workflow refusal). */
+export interface ApiErrorDetail {
+  code?: string
+  message?: string
+  reasons?: string[]
+  lock?: EditLock | null
+  current_version?: number
+  your_version?: number
+  current?: VersionSnapshot
+  changes_since_yours?: FieldChange[]
+  etag?: string
 }
+
+export interface ApiErrorBody {
+  detail?: string | ApiErrorDetail | { msg?: string; loc?: (string | number)[]; type?: string }[]
+}
+
+export * from './collabTypes'

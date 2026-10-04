@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import {
   useCreateAttribute,
@@ -6,63 +7,34 @@ import {
   useDeprecateAttribute,
   useItemTypes,
   useOrg,
-  useUpdateAttribute,
 } from '../api/hooks'
 import type { AttributeDataType, ItemType, ItemTypeAttribute } from '../api/types'
 
-/** Per-option workflow flags, only meaningful on the attribute literally
- * keyed "status" (app/services/workflow.py's convention) — surfaced right
- * here rather than a generic "edit enum options" UI since that's the only
- * place these flags do anything. */
-function StatusWorkflowFlags({ itemType, attr }: { itemType: ItemType; attr: ItemTypeAttribute }) {
-  const updateAttribute = useUpdateAttribute()
-
-  function toggle(value: string, flag: 'requires_approval' | 'notify_reviewers') {
-    const options = (attr.enum_options ?? []).map((o) =>
-      o.value === value ? { ...o, [flag]: !o[flag] } : o,
-    )
-    updateAttribute.mutate({ itemTypeId: itemType.id, attributeId: attr.id, payload: { enum_options: options } })
-  }
-
+/** The `status` attribute's values are generated from the item type's
+ * workflow (states), so they're shown read-only here with a pointer to
+ * the workflow editor instead of being edited as plain enum options. */
+function StatusWorkflowFlags({ attr }: { itemType: ItemType; attr: ItemTypeAttribute }) {
   return (
-    <div className="mb-2 rounded-md border border-slate-200 bg-white p-2">
+    <div className="mb-2 rounded-md border border-slate-200 bg-white p-2 text-xs">
       <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        Workflow (§ review/approval)
+        Status values — managed by the workflow
       </p>
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="text-slate-400">
-            <th className="text-left font-normal">Status value</th>
-            <th className="font-normal" title="Only an assigned approver can move an item into this status">
-              Requires approval
-            </th>
-            <th className="font-normal" title="Email the document's reviewers/approvers when an item moves into this status">
-              Notify reviewers
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {(attr.enum_options ?? []).map((o) => (
-            <tr key={o.value}>
-              <td className="py-0.5 text-slate-700">{o.label}</td>
-              <td className="text-center">
-                <input
-                  type="checkbox"
-                  checked={!!o.requires_approval}
-                  onChange={() => toggle(o.value, 'requires_approval')}
-                />
-              </td>
-              <td className="text-center">
-                <input
-                  type="checkbox"
-                  checked={!!o.notify_reviewers}
-                  onChange={() => toggle(o.value, 'notify_reviewers')}
-                />
-              </td>
-            </tr>
+      <div className="mb-1.5 flex flex-wrap gap-1">
+        {(attr.enum_options ?? [])
+          .filter((o) => !o.deprecated)
+          .map((o) => (
+            <span
+              key={o.value}
+              className="rounded-full px-2 py-0.5 font-medium"
+              style={{ backgroundColor: `${o.color ?? '#64748b'}1f`, color: o.color ?? '#64748b' }}
+            >
+              {o.label}
+            </span>
           ))}
-        </tbody>
-      </table>
+      </div>
+      <Link to="/admin/workflows" className="font-medium text-blue-600 hover:text-blue-800">
+        Edit states and transitions in Workflows →
+      </Link>
     </div>
   )
 }

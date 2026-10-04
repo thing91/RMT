@@ -158,10 +158,14 @@ export function useLinkTypes(orgId?: string) {
   })
 }
 
-export function useDocumentTree(documentId?: string) {
+export function useDocumentTree(documentId?: string, includeObsolete = false) {
   return useQuery({
-    queryKey: ['document-tree', documentId],
-    queryFn: async () => (await api.get<Item[]>(`/documents/${documentId}/items`)).data,
+    queryKey: ['document-tree', documentId, includeObsolete],
+    // Picks up other users' edit locks and status changes without a reload.
+    refetchInterval: 20_000,
+    queryFn: async () =>
+      (await api.get<Item[]>(`/documents/${documentId}/items`, { params: { include_obsolete: includeObsolete } }))
+        .data,
     enabled: !!documentId,
   })
 }
@@ -211,9 +215,9 @@ export function useDocumentComments(documentId?: string) {
 }
 
 export function useCreateComment(itemId: string) {
-  const invalidate = useInvalidate(['item-comments', 'document-comments'])
+  const invalidate = useInvalidate(['item-comments', 'document-comments', 'suggestion-comments', 'watch'])
   return useMutation({
-    mutationFn: async (payload: { body: string; parent_comment_id?: string }) =>
+    mutationFn: async (payload: { body: string; parent_comment_id?: string; suggestion_id?: string }) =>
       (await api.post<ItemComment>(`/items/${itemId}/comments`, payload)).data,
     onSuccess: invalidate,
   })
@@ -272,11 +276,16 @@ export function useCreateItem(documentId: string) {
   })
 }
 
+/** PATCH an item. Structure-only changes (parent_id/order) need no ETag;
+ * any content change must pass the `etag` it was based on (If-Match) —
+ * the server answers 412 with a diff if someone else changed it first. */
 export function useUpdateItem() {
-  const invalidate = useInvalidate(['document-tree', 'project-items', 'item-links'])
+  const invalidate = useInvalidate([
+    'document-tree', 'project-items', 'item-links', 'item', 'item-versions', 'item-suggestions', 'structure-lock',
+  ])
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: Partial<Item> }) =>
-      (await api.patch<Item>(`/items/${id}`, payload)).data,
+    mutationFn: async ({ id, payload, etag }: { id: string; payload: Partial<Item>; etag?: string | null }) =>
+      (await api.patch<Item>(`/items/${id}`, payload, etag ? { headers: { 'If-Match': etag } } : undefined)).data,
     onSuccess: invalidate,
   })
 }
@@ -609,34 +618,6 @@ export function useRevokeWorkflowRole() {
   const invalidate = useInvalidate(['workflow-roles'])
   return useMutation({
     mutationFn: async (id: string) => api.delete(`/workflow-roles/${id}`),
-    onSuccess: invalidate,
-  })
-}
-
-export function useApproveItem() {
-  const invalidate = useInvalidate(['document-tree', 'project-items'])
-  return useMutation({
-    mutationFn: async ({
-      itemId,
-      payload,
-    }: {
-      itemId: string
-      payload: { status_value: string; note?: string }
-    }) => (await api.post<Item>(`/items/${itemId}/approve`, payload)).data,
-    onSuccess: invalidate,
-  })
-}
-
-export function useApproveDocument(documentId: string) {
-  const invalidate = useInvalidate(['document-tree', 'project-items'])
-  return useMutation({
-    mutationFn: async (payload: { status_value: string; note?: string }) =>
-      (
-        await api.post<{ approved_count: number; skipped_count: number }>(
-          `/documents/${documentId}/approve`,
-          payload,
-        )
-      ).data,
     onSuccess: invalidate,
   })
 }

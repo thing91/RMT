@@ -243,6 +243,19 @@ export default function ProjectLayout() {
                           <NavLink to={`/projects/${projectId}/parameters`} className={docLinkClass}>
                             Parameters
                           </NavLink>
+                          <div className={sectionLabelClass}>Review &amp; change</div>
+                          <NavLink to={`/projects/${projectId}/reviews`} className={docLinkClass}>
+                            Reviews
+                          </NavLink>
+                          <NavLink to={`/projects/${projectId}/suggestions`} className={docLinkClass}>
+                            Change suggestions (RIDs)
+                          </NavLink>
+                          <NavLink to={`/projects/${projectId}/changes`} className={docLinkClass}>
+                            Change requests &amp; suspect links
+                          </NavLink>
+                          <NavLink to={`/projects/${projectId}/workflows`} className={docLinkClass}>
+                            Workflows
+                          </NavLink>
                         </nav>
                       )}
                     </div>

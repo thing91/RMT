@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8000',
+      // Overridable so a second copy can run next to the usual one.
+      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:8000',
     },
   },
 })

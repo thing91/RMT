@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import AuthBar from './AuthBar'
+import NotificationBell from './NotificationBell'
 
 export default function TopBar({ children }: { children?: ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export default function TopBar({ children }: { children?: ReactNode }) {
         <Link to="/glossary" className="text-sm font-medium text-slate-500 hover:text-blue-600">
           Glossary
         </Link>
+        <NotificationBell />
         <AuthBar />
       </div>
     </header>

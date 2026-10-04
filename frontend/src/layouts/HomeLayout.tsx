@@ -23,6 +23,9 @@ export default function HomeLayout() {
             <NavLink to="/admin/link-types" className={navLinkClass}>
               Link Types
             </NavLink>
+            <NavLink to="/admin/workflows" className={navLinkClass}>
+              Workflows
+            </NavLink>
             <NavLink to="/standards" className={navLinkClass}>
               Standards Library
             </NavLink>

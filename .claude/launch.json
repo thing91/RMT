@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "C:/Users/user/Desktop/RMT-KNA/backend/.venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--port", "8001"],
+      "cwd": "C:/Users/user/Desktop/RMT-KNA/backend",
+      "port": 8001
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5191", "--strictPort"],
+      "cwd": "C:/Users/user/Desktop/RMT-KNA/frontend",
+      "env": { "API_PROXY_TARGET": "http://localhost:8001" },
+      "port": 5191
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../api/client'
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -293,7 +294,10 @@ function ItemRow({
   const isStructural = itemType?.behavior === 'structural'
 
   function saveAttribute(key: string, value: unknown) {
-    updateItem.mutate({ id: item.id, payload: { attributes: { ...item.attributes, [key]: value } } })
+    updateItem.mutate(
+      { id: item.id, payload: { attributes: { ...item.attributes, [key]: value } }, etag: item.etag },
+      { onError: (err) => window.alert(apiErrorMessage(err, 'Could not save this change.')) },
+    )
   }
 
   if (isStructural) {
@@ -305,7 +309,7 @@ function ItemRow({
             <InlineEditField
               editable={editMode}
               value={item.title}
-              onSave={(v) => updateItem.mutate({ id: item.id, payload: { title: v } })}
+              onSave={(v) => updateItem.mutate({ id: item.id, payload: { title: v }, etag: item.etag }, { onError: alertError })}
               renderDisplay={() => <>{item.title}</>}
             />
           </div>
@@ -352,7 +356,7 @@ function ItemRow({
               <InlineEditField
                 editable={editMode}
                 value={item.title}
-                onSave={(v) => updateItem.mutate({ id: item.id, payload: { title: v } })}
+                onSave={(v) => updateItem.mutate({ id: item.id, payload: { title: v }, etag: item.etag }, { onError: alertError })}
                 renderDisplay={() => <span className="text-[15px] font-medium text-slate-800">{item.title}</span>}
               />
             </div>
@@ -364,7 +368,9 @@ function ItemRow({
             multiline
             value={item.description_md ?? ''}
             placeholder="Click to add a description…"
-            onSave={(v) => updateItem.mutate({ id: item.id, payload: { description_md: v } })}
+            onSave={(v) =>
+              updateItem.mutate({ id: item.id, payload: { description_md: v }, etag: item.etag }, { onError: alertError })
+            }
             renderDisplay={() =>
               item.description_md ? (
                 <DescriptionPreview
@@ -483,6 +489,10 @@ function ItemRow({
       </div>
     </div>
   )
+}
+
+function alertError(err: unknown) {
+  window.alert(apiErrorMessage(err, 'Could not save this change.'))
 }
 
 export default function DocumentReviewView({ documentId, projectId, orgId }: Props) {

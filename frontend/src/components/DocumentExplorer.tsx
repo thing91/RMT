@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { apiErrorMessage } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import { useDocumentTree, useItemTypes, useLinkTypes, useUpdateItem } from '../api/hooks'
 import type { Item, ItemType } from '../api/types'
 import { focusAtEnd, planInsertAfter } from '../structure/itemOrdering'
 import AddItemForm from './AddItemForm'
+import StatusBadge from './collab/StatusBadge'
+import StructureLockBar from './collab/StructureLockBar'
 import ItemDetailPanel from './ItemDetailPanel'
 import ItemStructureToolbar from './ItemStructureToolbar'
 import LinkEndpointButtons from './LinkEndpointButtons'
@@ -45,6 +49,8 @@ function TreeNode({
   insertBelowId: string | null
   setInsertBelowId: (id: string | null) => void
 }) {
+  const { user } = useAuth()
+  const currentUserId = user?.id
   const [collapsed, setCollapsed] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(item.title)
@@ -55,7 +61,11 @@ function TreeNode({
 
   function commitTitle() {
     setEditingTitle(false)
-    if (titleDraft !== item.title) updateItem.mutate({ id: item.id, payload: { title: titleDraft } })
+    if (titleDraft !== item.title)
+      updateItem.mutate(
+        { id: item.id, payload: { title: titleDraft }, etag: item.etag },
+        { onError: (err) => window.alert(apiErrorMessage(err, 'Could not rename this item.')) },
+      )
   }
 
   return (
@@ -102,11 +112,12 @@ function TreeNode({
           <button
             onClick={() => onSelect(item.id)}
             onDoubleClick={() => {
+              if (item.read_only_reason || (item.lock && item.lock.user_id !== currentUserId)) return
               setTitleDraft(item.title)
               setEditingTitle(true)
             }}
-            title="Double-click to edit"
-            className={`flex-1 truncate text-left ${
+            title={item.read_only_reason ?? 'Double-click to edit'}
+            className={`flex-1 truncate text-left ${item.obsolete ? 'text-slate-400 line-through decoration-slate-300' : ''} ${
               isStructural
                 ? depth === 0
                   ? 'text-[15px] font-semibold text-slate-800'
@@ -123,6 +134,21 @@ function TreeNode({
             )}
             {item.title}
           </button>
+        )}
+
+        {!isStructural && item.has_workflow && <StatusBadge itemType={itemType} value={item.attributes.status} small />}
+        {item.lock && item.lock.user_id !== currentUserId && (
+          <span
+            className="shrink-0 rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-800"
+            title={`${item.lock.user_name} is editing this`}
+          >
+            ✎ {item.lock.user_name}
+          </span>
+        )}
+        {item.suspect_links > 0 && (
+          <span className="shrink-0 text-xs text-orange-600" title={`${item.suspect_links} suspect link(s)`}>
+            ⚠
+          </span>
         )}
 
         {!isStructural && <LinkEndpointButtons item={item} />}
@@ -217,7 +243,8 @@ function TreeNode({
 }
 
 export default function DocumentExplorer({ documentId, orgId, compact }: Props) {
-  const { data: tree, isLoading } = useDocumentTree(documentId)
+  const [showObsolete, setShowObsolete] = useState(false)
+  const { data: tree, isLoading } = useDocumentTree(documentId, showObsolete)
   const { data: itemTypes } = useItemTypes(orgId)
   const { data: linkTypes } = useLinkTypes(orgId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -283,6 +310,13 @@ export default function DocumentExplorer({ documentId, orgId, compact }: Props) 
           />
         )}
 
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <StructureLockBar documentId={documentId} />
+          <label className="flex items-center gap-1 text-xs text-slate-500">
+            <input type="checkbox" checked={showObsolete} onChange={(e) => setShowObsolete(e.target.checked)} />
+            Show obsolete
+          </label>
+        </div>
         <ItemStructureToolbar selectedItem={selectedItem} allItems={allItems} itemTypes={itemTypes} />
 
         <div className="rounded-lg border border-slate-200 bg-white p-2">
