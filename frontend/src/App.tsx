@@ -5,8 +5,10 @@ import DocumentView from './pages/DocumentView'
 import GlossaryAdmin from './pages/GlossaryAdmin'
 import GraphView from './pages/GraphView'
 import Home from './pages/Home'
+import ApplicabilityPage from './pages/ApplicabilityPage'
 import ChangesPage from './pages/ChangesPage'
 import ItemTypesAdmin from './pages/ItemTypesAdmin'
+import LibraryReleasesPage from './pages/LibraryReleasesPage'
 import LinkTypesAdmin from './pages/LinkTypesAdmin'
 import ParametersAdmin from './pages/ParametersAdmin'
 import ProjectDetail from './pages/ProjectDetail'
@@ -41,6 +43,8 @@ export default function App() {
         <Route path="suggestions" element={<SuggestionsPage />} />
         <Route path="changes" element={<ChangesPage />} />
         <Route path="workflows" element={<WorkflowsAdmin />} />
+        <Route path="applicability" element={<ApplicabilityPage />} />
+        <Route path="releases" element={<LibraryReleasesPage />} />
         <Route path="documents/:documentId" element={<TreeView />} />
         <Route path="documents/:documentId/table" element={<TableView />} />
         <Route path="documents/:documentId/document" element={<DocumentView />} />

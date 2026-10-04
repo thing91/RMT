@@ -243,6 +243,15 @@ export default function ProjectLayout() {
                           <NavLink to={`/projects/${projectId}/parameters`} className={docLinkClass}>
                             Parameters
                           </NavLink>
+                          {project.kind === 'library' ? (
+                            <NavLink to={`/projects/${projectId}/releases`} className={docLinkClass}>
+                              Library releases
+                            </NavLink>
+                          ) : (
+                            <NavLink to={`/projects/${projectId}/applicability`} className={docLinkClass}>
+                              Applicability matrix
+                            </NavLink>
+                          )}
                           <div className={sectionLabelClass}>Review &amp; change</div>
                           <NavLink to={`/projects/${projectId}/reviews`} className={docLinkClass}>
                             Reviews

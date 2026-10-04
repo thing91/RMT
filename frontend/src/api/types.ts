@@ -93,6 +93,8 @@ export interface Item {
   read_only_reason: string | null
   has_workflow: boolean
   suspect_links: number
+  source_item_id: string | null
+  source_version: number | null
 }
 
 export interface EditLock {
@@ -133,6 +135,16 @@ export interface Project {
   visibility: 'public' | 'private'
   gitlab_repo_url: string | null
   default_branch: string
+  kind: 'project' | 'library'
+  mission_attribute_defs: MissionAttributeDef[]
+  mission_attributes: Record<string, unknown>
+}
+
+export interface MissionAttributeDef {
+  key: string
+  label?: string
+  type: 'boolean' | 'enum' | 'number' | 'text'
+  options?: string[]
 }
 
 export interface Document {
@@ -355,3 +367,4 @@ export interface ApiErrorBody {
 }
 
 export * from './collabTypes'
+export * from './libraryTypes'

@@ -9,6 +9,7 @@ function NewProjectForm({ orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'private'>('private')
+  const [kind, setKind] = useState<'project' | 'library'>('project')
   const [error, setError] = useState<string | null>(null)
 
   if (!open) {
@@ -28,7 +29,7 @@ function NewProjectForm({ orgId }: { orgId: string }) {
     if (!name.trim()) return
     setError(null)
     createProject.mutate(
-      { name: name.trim(), visibility },
+      { name: name.trim(), visibility, kind },
       {
         onSuccess: (project) => navigate(`/projects/${project.id}`),
         onError: (err) => setError(apiErrorMessage(err, 'Could not create this project.')),
@@ -56,6 +57,14 @@ function NewProjectForm({ orgId }: { orgId: string }) {
         >
           <option value="private">Private</option>
           <option value="public">Public</option>
+        </select>
+        <select
+          className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+          value={kind}
+          onChange={(e) => setKind(e.target.value as 'project' | 'library')}
+        >
+          <option value="project">Project</option>
+          <option value="library">Generic requirements library</option>
         </select>
       </div>
       <div className="flex gap-2">
@@ -121,6 +130,11 @@ export default function Home() {
               >
                 {project.visibility}
               </span>
+              {project.kind === 'library' && (
+                <span className="ml-1 mt-1 inline-block rounded bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-700">
+                  library
+                </span>
+              )}
             </div>
             <span className="text-sm text-blue-600">Open →</span>
           </button>

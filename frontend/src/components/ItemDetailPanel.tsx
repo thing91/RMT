@@ -18,6 +18,7 @@ import {
   useGlossary,
   useItemLinks,
   useParameters,
+  useProject,
   useReferenceDocuments,
   useStandards,
 } from '../api/hooks'
@@ -27,6 +28,7 @@ import AttributeField from './AttributeField'
 import CommentsSection from './CommentsSection'
 import ConflictDialog from './collab/ConflictDialog'
 import HistoryPanel from './collab/HistoryPanel'
+import LibraryRulesPanel from './collab/LibraryRulesPanel'
 import LockBanner from './collab/LockBanner'
 import StatusBadge from './collab/StatusBadge'
 import SuggestionForm from './collab/SuggestionForm'
@@ -49,7 +51,7 @@ interface Props {
   compact?: boolean
 }
 
-type Tab = 'links' | 'comments' | 'suggestions' | 'history'
+type Tab = 'links' | 'comments' | 'suggestions' | 'history' | 'rules'
 
 /** Item details with explicit edit sessions: "Edit" takes the item's edit
  * lock (a lease kept alive by heartbeats), "Save" writes all changes at
@@ -59,6 +61,8 @@ export default function ItemDetailPanel({ item, itemType, itemTypes, linkTypes, 
   const { projectId } = useParams<{ projectId: string }>()
   const { user } = useAuth()
   const { data: perms } = usePermissions(projectId)
+  const { data: project } = useProject(projectId)
+  const isLibrary = project?.kind === 'library'
   const save = useSaveItemContent()
   const deleteItem = useDeleteItem()
   const transition = useItemTransition()
@@ -248,6 +252,14 @@ export default function ItemDetailPanel({ item, itemType, itemTypes, linkTypes, 
         </button>
       )}
 
+      {isContent && !isLibrary && (
+        <div className="border-b border-slate-200 px-4 py-1.5 text-[11px] text-slate-500">
+          {item.source_item_id
+            ? `Derived from a library requirement (v${item.source_version}) — applicable with modification.`
+            : 'Project-specific requirement.'}
+        </div>
+      )}
+
       {item.approved_by && (
         <div className="border-b border-green-200 bg-green-50 px-4 py-1.5 text-xs text-green-800">
           Approved by <span className="font-medium">{item.approved_by}</span>
@@ -399,6 +411,7 @@ export default function ItemDetailPanel({ item, itemType, itemTypes, linkTypes, 
                   ['suggestions', 'Suggestions'],
                   ['links', `Links${item.suspect_links ? ' ⚠' : ''}`],
                   ['history', 'History'],
+                  ...(isLibrary ? ([['rules', 'Applicability rules']] as [Tab, string][]) : []),
                 ] as [Tab, string][]
               ).map(([key, label]) => (
                 <button
@@ -422,6 +435,13 @@ export default function ItemDetailPanel({ item, itemType, itemTypes, linkTypes, 
               <LinksSection item={item} itemTypes={itemTypes} linkTypes={linkTypes} allItems={allItems} />
             )}
             {tab === 'history' && <HistoryPanel itemId={item.id} currentVersion={item.version} />}
+            {tab === 'rules' && project && (
+              <LibraryRulesPanel
+                itemId={item.id}
+                defs={project.mission_attribute_defs ?? []}
+                canEdit={can(perms, 'item.edit')}
+              />
+            )}
           </>
         )}
       </div>

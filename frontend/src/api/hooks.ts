@@ -78,7 +78,7 @@ export function useDocument(projectId?: string, documentId?: string) {
 export function useCreateProject(orgId: string) {
   const invalidate = useInvalidate(['projects'])
   return useMutation({
-    mutationFn: async (payload: { name: string; visibility: 'public' | 'private' }) =>
+    mutationFn: async (payload: { name: string; visibility: 'public' | 'private'; kind?: 'project' | 'library' }) =>
       (await api.post<Project>(`/organizations/${orgId}/projects`, payload)).data,
     onSuccess: invalidate,
   })
