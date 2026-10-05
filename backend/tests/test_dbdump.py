@@ -170,3 +170,23 @@ def test_export_endpoint_is_for_org_admins(world, source_engine):
     r = c.post("/api/v1/admin/database/import", files={"file": ("d.zip", b"x", "application/zip")},
                data={"confirm": "nope"}, headers=world.h("boss"))
     assert r.status_code == 422
+
+
+def test_command_line_tool(world, source_engine, tmp_path, capsys, monkeypatch):
+    from app import dbtool
+
+    monkeypatch.setattr(dbtool, "engine", source_engine)
+    monkeypatch.setattr(dbdump, "default_files_dir", lambda: str(tmp_path / "files"))
+    _populate(world)
+    out = tmp_path / "cli.zip"
+    assert dbtool.main(["export", str(out)]) == 0
+    assert "Exported" in capsys.readouterr().out
+    assert dbtool.main(["inspect", str(out)]) == 0
+    assert '"format": "rmt-dump"' in capsys.readouterr().out
+    # Importing into a database that has data needs --replace (and a typed confirmation).
+    assert dbtool.main(["import", str(out)]) == 2
+    monkeypatch.setattr("builtins.input", lambda _: "no")
+    assert dbtool.main(["import", str(out), "--replace"]) == 1
+    bad = tmp_path / "bad.zip"
+    bad.write_bytes(b"not a zip")
+    assert dbtool.main(["inspect", str(bad)]) == 2

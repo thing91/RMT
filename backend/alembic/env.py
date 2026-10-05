@@ -26,7 +26,8 @@ if config.config_file_name is not None and _external_connection is None:
 
 # The app's own Settings (env vars / .env) are the single source of truth
 # for the DB URL — not a second copy hardcoded in alembic.ini.
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# configparser treats % as interpolation — escape it (URL-encoded passwords, options).
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 

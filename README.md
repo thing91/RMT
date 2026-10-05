@@ -20,8 +20,7 @@ can be created from the UI, not just seeded.
 
 Not included: a real LDAP directory (dev-mode fallback stands in), pushing
 the Git sync to a GitLab remote or its inbound webhook, DOCX export (needs
-`pandoc`), Alembic migrations, an org-admin role — see "Known
-simplifications" below.
+`pandoc`) — see "Known simplifications" below.
 
 ## Stack
 
@@ -265,10 +264,8 @@ APP_BASE_URL=https://your-deployed-frontend-url
 ## Concurrency, workflow & change management
 
 Implements `wymagania-wspolbieznosc-i-workflow.md` (the plan and its status
-are in `docs/PLAN-wdrozenia.md`). Backend tests: `cd backend &&
-.venv/Scripts/python.exe -m pytest` (runs against an isolated `rmt_test`
-schema in the dev database; `pip install -r requirements-dev.txt` first).
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library).
+are in `docs/PLAN-wdrozenia.md`). How to run the tests: see "Tests & CI"
+below.
 
 - **Permissions** — every project role maps to named permissions
   (`item.edit`, `structure.edit`, `lock.override`, `suggestion.resolve`,
@@ -366,6 +363,79 @@ Frontend tests: `cd frontend && npm test` (Vitest + Testing Library).
   replies, internal priority/effort/notes, duplicate merging (votes and
   followers move), release notes. Ideas are visible to all users; another
   organization's name is shown as "Organization hidden".
+
+## Record history, document baselines, API, backup & migration
+
+- **Every record has a history** — an `after_flush` hook on every
+  SQLAlchemy session (`app/services/record_history.py`) writes one
+  `record_changes` row per created, changed or deleted object, in every
+  table, with the changed fields (`{field: [old, new]}`), who did it and
+  the project it belongs to. Nothing to add per endpoint; a new model is
+  covered automatically. Bookkeeping tables (locks, notifications, audit,
+  item versions, API tokens) are left out. Read it with
+  `GET /api/v1/changes/{table}/{id}` or the project change log
+  `GET /api/v1/projects/{id}/changes`. (How it is shown in the UI is still
+  being decided — see the proposal artifact.)
+- **Document baselines** — document toolbar ⋯ → "Create a baseline…"
+  freezes one document (e.g. "SRR — System Requirements Review"): every
+  item with its text, attributes, status and version, its links (with the
+  far ends' keys), and the item/link types as they were. The version
+  selector next to the document name switches between the live document
+  and its baselines; a baseline is read-only and "Compare with the current
+  version" marks what changed or was retired since. Project baselines
+  (whole project) still exist on the Baselines page, which now lists both.
+- **API** — every screen goes through the REST API. Interactive docs at
+  `/api/docs` (Swagger, with an "Authorize" button), reference at
+  `/api/redoc`, the spec at `/api/openapi.json`; all under `/api` so they
+  work through the frontend proxy too. ⚙ Administration → **API** (also
+  "API & tokens" in the account menu) has the base address, examples and
+  **personal API tokens** (`rmt_…`): they act as their owner with the
+  owner's permissions, can expire, can be revoked, and only their SHA-256
+  is stored.
+- **Backup & migration** — the whole database plus uploaded PDFs in one
+  `.zip`: ⚙ Administration → **Backup & migration**, or from the command
+  line:
+  ```bash
+  cd backend
+  .venv/Scripts/python.exe -m app.dbtool export rmt-backup.zip
+  .venv/Scripts/python.exe -m app.dbtool inspect rmt-backup.zip
+  .venv/Scripts/python.exe -m app.dbtool import rmt-backup.zip            # into an empty database
+  .venv/Scripts/python.exe -m app.dbtool import rmt-backup.zip --replace  # overwrite everything
+  ```
+  Rows are read from the live database by reflection (one JSON line per
+  row), together with the schema revision. Import recreates the schema at
+  *the export's* revision, loads the rows (self-references and the
+  comments ↔ suggestions cycle are filled in after loading), then runs the
+  normal migrations to the current version — all in one transaction, so a
+  failed import leaves the database untouched. An export from an older RMT
+  therefore lands on the current schema with nothing special to do. The UI
+  import writes a backup of the current data to `backend/backups/` first.
+
+## Tests & CI
+
+| Layer | What | Run locally |
+|---|---|---|
+| Backend | API and services against a real PostgreSQL (`rmt_test` schema), including dump/restore and migrating an old-schema export | `cd backend && .venv/Scripts/python.exe -m pytest` (add `--cov=app` for coverage) |
+| Frontend | Vitest + Testing Library: i18n, status palette, in-place editing, workflow actions, sign-in refetch, presence, conflict dialog | `cd frontend && npm test` |
+| Translations | every `t('…')` string has a Polish entry | `cd frontend && npm run i18n:check` |
+| End-to-end regression | Playwright in Chromium against the production build served by the backend: sign-in, language, documents, search, editing with locks and history, read-only access, baselines, glossary, API tokens, export | `cd frontend && npm run test:e2e:local` |
+
+`npm run test:e2e:local` builds the frontend, recreates a separate `e2e`
+schema, starts the backend on :8002 and runs the suite — your development
+data is never touched. Every E2E test creates its own project, so
+`BASE_URL=… npx playwright test` also works against any running instance.
+The first time, install the browser: `npx playwright install chromium`.
+
+**CI** (`.github/workflows/ci.yml`, on every push and pull request):
+1. *Backend* — PostgreSQL 16 service; migrations from scratch,
+   `alembic check` (models and migrations agree), a downgrade/upgrade round
+   trip of the latest migration, then pytest with coverage (JUnit + coverage
+   XML uploaded).
+2. *Frontend* — `npm ci`, lint (oxlint), type check, unit tests (JUnit),
+   translation check, production build.
+3. *End-to-end* — after both pass: a fresh database with migrations and
+   seed data, the backend serving the build, then the Playwright suite;
+   report, traces and the server log are uploaded when something fails.
 
 ## Known simplifications (flagged, not forgotten)
 

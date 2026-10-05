@@ -10,7 +10,7 @@ from app.models.parameter import Parameter, ParameterLink
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.parameter import ParameterCreate, ParameterRead, ParameterUpdate, ParameterUsage
-from app.services.parameters import ParameterError, compute_all_values
+from app.services.parameters import ParameterError, compute_all_values, validate_parameters
 from app.services.permissions import has_role_at_least
 
 router = APIRouter(tags=["parameters"])
@@ -68,16 +68,16 @@ def create_parameter(
         raise HTTPException(422, "A derived parameter needs a formula.")
 
     param = Parameter(project_id=project_id, updated_by=user.username, **payload.model_dump())
+    others = db.query(Parameter).filter(Parameter.project_id == project_id).all()
+    try:
+        validate_parameters([*others, param], param)
+    except (ParameterError, ZeroDivisionError) as e:
+        raise HTTPException(422, str(e))
     db.add(param)
     db.commit()
     db.refresh(param)
-
     all_params = db.query(Parameter).filter(Parameter.project_id == project_id).all()
-    try:
-        computed = compute_all_values(all_params)
-    except ParameterError as e:
-        raise HTTPException(422, str(e))
-    return _to_read(param, computed, {})
+    return _to_read(param, compute_all_values(all_params), {})
 
 
 @router.patch("/parameters/{parameter_id}", response_model=ParameterRead)
@@ -98,15 +98,15 @@ def update_parameter(
     for field, value in data.items():
         setattr(param, field, value)
     param.updated_by = user.username
-    db.commit()
-    db.refresh(param)
-
     all_params = db.query(Parameter).filter(Parameter.project_id == param.project_id).all()
     try:
-        computed = compute_all_values(all_params)
-    except ParameterError as e:
+        validate_parameters(all_params, param)
+    except (ParameterError, ZeroDivisionError) as e:
+        db.rollback()
         raise HTTPException(422, str(e))
-    return _to_read(param, computed, {})
+    db.commit()
+    db.refresh(param)
+    return _to_read(param, compute_all_values(all_params), {})
 
 
 @router.delete("/parameters/{parameter_id}", status_code=204)

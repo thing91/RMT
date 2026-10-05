@@ -137,7 +137,7 @@ function Tokens() {
                         onClick={() => revoke.mutate(tok.id)}
                         className="text-xs text-slate-500 hover:text-red-600"
                       >
-                        {t('Revoke')}
+                        {t('Revoke token')}
                       </button>
                     )}
                   </td>

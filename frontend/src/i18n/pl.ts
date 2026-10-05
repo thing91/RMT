@@ -956,4 +956,7 @@ export const pl: Record<string, string> = {
   'Type REPLACE to confirm': 'Wpisz REPLACE, aby potwierdzić',
   'Importing…': 'Importowanie…',
   'Replace all data': 'Zastąp wszystkie dane',
+
+  // --- tokens
+  'Revoke token': 'Unieważnij',
 }

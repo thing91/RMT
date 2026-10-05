@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useProjectSuggestions } from '../api/collabHooks'
 import {
@@ -105,8 +105,9 @@ const ICON = {
   ),
 }
 
-/** A row action: hidden until you hover the row, unless it has something
- * to show (a count) — then it stays visible with the number. */
+/** A row action button. Actions with something to show (a count) sit in
+ * the row; the rest appear in a small overlay toolbar on hover, so they
+ * never take space from the title. */
 function RowAction({
   icon,
   count,
@@ -134,9 +135,7 @@ function RowAction({
       }}
       title={title}
       aria-label={title}
-      className={`flex items-center gap-0.5 rounded px-1 py-0.5 text-xs leading-none hover:bg-slate-100 ${color} ${
-        has ? '' : 'invisible group-hover/row:visible'
-      }`}
+      className={`flex items-center gap-0.5 rounded px-1 py-0.5 text-xs leading-none hover:bg-slate-100 ${color}`}
     >
       {icon}
       {has && <span className="font-medium">{count}</span>}
@@ -193,12 +192,30 @@ function ItemRow({
   const isStructural = itemType?.behavior === 'structural'
   const selectedClass = selected ? 'bg-blue-50/70 ring-1 ring-inset ring-blue-200' : 'hover:bg-slate-50/80'
   const textEditable = editMode && canEdit && !item.read_only_reason && !item.obsolete
+  // In Edit mode a double-click edits text in place. Opening the details
+  // panel on the first click of that double-click would reflow the
+  // document under the cursor, so a single click opens it a moment later
+  // and a double-click cancels it.
+  const openTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(openTimer.current), [])
+  function handleClick(e: MouseEvent) {
+    if (!isPlainRowClick(e)) return
+    if (!editMode) {
+      onOpen()
+      return
+    }
+    window.clearTimeout(openTimer.current)
+    if (e.detail > 1) return
+    openTimer.current = window.setTimeout(() => onOpen(), 250)
+  }
+  const cancelOpen = () => window.clearTimeout(openTimer.current)
 
   if (isStructural) {
     return (
       <div
         data-item-row={item.id}
-        onClick={(e) => isPlainRowClick(e) && onOpen()}
+        onClick={handleClick}
+        onDoubleClickCapture={cancelOpen}
         className={`group/row flex items-center gap-2 px-6 ${depth === 0 ? 'pb-1 pt-6' : 'pb-1 pt-4'} ${selectedClass}`}
       >
         <div className={`min-w-0 flex-1 ${headingClass(depth)} ${item.obsolete ? 'text-slate-400 line-through' : ''}`}>
@@ -251,8 +268,9 @@ function ItemRow({
   return (
     <div
       data-item-row={item.id}
-      onClick={(e) => isPlainRowClick(e) && onOpen()}
-      className={`group/row cursor-default px-6 py-2.5 ${selectedClass}`}
+      onClick={handleClick}
+      onDoubleClickCapture={cancelOpen}
+      className={`group/row relative cursor-default px-6 py-2.5 ${selectedClass}`}
     >
       <div className={`flex items-start gap-2 ${item.obsolete ? 'opacity-60' : ''}`}>
         {item.key && <span className="mt-0.5 shrink-0 font-mono text-xs font-medium text-slate-500">{item.key}</span>}
@@ -280,14 +298,28 @@ function ItemRow({
           </button>
         )}
         <StatusBadge itemType={itemType} value={item.attributes.status} small />
-        <div className="flex shrink-0 items-center">
-          {editMode && <LinkEndpointButtons item={item} />}
-          {item.has_workflow && item.read_only_reason && !item.obsolete && (
-            <RowAction icon={ICON.change} title={t('Request a change')} tone="violet" onClick={onRequestChange} />
-          )}
-          <RowAction icon={ICON.suggest} count={openSuggestions} title={t('Suggest a change')} tone="amber" onClick={onSuggest} />
-          <RowAction icon={ICON.comment} count={openComments} title={t('Comments')} tone="blue" onClick={() => onOpen('activity')} />
-        </div>
+        {(openSuggestions > 0 || openComments > 0) && (
+          <div className="flex shrink-0 items-center">
+            {openSuggestions > 0 && (
+              <RowAction icon={ICON.suggest} count={openSuggestions} title={t('Suggest a change')} tone="amber" onClick={onSuggest} />
+            )}
+            {openComments > 0 && (
+              <RowAction icon={ICON.comment} count={openComments} title={t('Comments')} tone="blue" onClick={() => onOpen('activity')} />
+            )}
+          </div>
+        )}
+      </div>
+      <div className="absolute -top-3 right-3 z-10 hidden items-center rounded-md border border-slate-200 bg-white px-0.5 shadow-sm group-hover/row:flex">
+        {editMode && <LinkEndpointButtons item={item} />}
+        {item.has_workflow && item.read_only_reason && !item.obsolete && (
+          <RowAction icon={ICON.change} title={t('Request a change')} tone="violet" onClick={onRequestChange} />
+        )}
+        {openSuggestions === 0 && (
+          <RowAction icon={ICON.suggest} title={t('Suggest a change')} tone="amber" onClick={onSuggest} />
+        )}
+        {openComments === 0 && (
+          <RowAction icon={ICON.comment} title={t('Comments')} tone="blue" onClick={() => onOpen('activity')} />
+        )}
       </div>
 
       <div className={`mt-0.5 ${item.key ? 'pl-[4.5rem]' : ''} ${item.obsolete ? 'opacity-60' : ''}`}>

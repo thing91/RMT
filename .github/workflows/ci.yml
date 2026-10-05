@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  backend:
+    name: Backend — migrations & tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rmt
+          POSTGRES_PASSWORD: rmt
+          POSTGRES_DB: rmt
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rmt" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg2://rmt:rmt@localhost:5432/rmt
+      JWT_SECRET: ci-secret-that-is-long-enough-for-hs256
+      GIT_SYNC_ENABLED: "false"
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Migrations build the schema from scratch
+        run: python -m alembic upgrade head
+      - name: Models and migrations agree (no un-migrated model change)
+        run: python -m alembic check
+      - name: Downgrade/upgrade round trip of the latest migration
+        run: python -m alembic downgrade -1 && python -m alembic upgrade head
+      - name: Tests
+        run: python -m pytest -p no:warnings --cov=app --cov-report=term --cov-report=xml --junitxml=pytest.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: |
+            backend/pytest.xml
+            backend/coverage.xml
+
+  frontend:
+    name: Frontend — lint, types, tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - name: Type check
+        run: npx tsc -b
+      - name: Unit & component tests
+        run: npm test -- --reporter=default --reporter=junit --outputFile.junit=vitest.xml
+      - name: Every UI string has a Polish translation
+        run: npm run i18n:check
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  e2e:
+    name: End-to-end regression (Playwright)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rmt
+          POSTGRES_PASSWORD: rmt
+          POSTGRES_DB: rmt
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rmt" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg2://rmt:rmt@localhost:5432/rmt
+      JWT_SECRET: ci-secret-that-is-long-enough-for-hs256
+      GIT_SYNC_ENABLED: "false"
+      DEV_AUTH_FALLBACK: "true"
+      FRONTEND_DIST: ${{ github.workspace }}/frontend/dist
+      BASE_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - run: pip install -r backend/requirements.txt
+      - name: Database with the seed data
+        working-directory: backend
+        run: python -m alembic upgrade head && python -m app.seed
+      - name: Start the application (backend serving the built frontend)
+        working-directory: backend
+        run: |
+          nohup python -m uvicorn app.main:app --port 8000 > uvicorn.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8000/api/v1/health && break; sleep 1; done
+      - name: Install Playwright
+        working-directory: frontend
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Run the regression suite
+        working-directory: frontend
+        run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            backend/uvicorn.log

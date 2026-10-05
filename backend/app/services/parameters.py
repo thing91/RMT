@@ -67,43 +67,76 @@ def eval_formula(formula: str, values: dict[str, float]) -> float:
     return _eval_node(tree, values)
 
 
+class ParameterCycleError(ParameterError):
+    pass
+
+
+def formula_refs(formula: str | None) -> set[str]:
+    """Parameter keys a formula uses."""
+    if not formula:
+        return set()
+    try:
+        tree = ast.parse(formula, mode="eval")
+    except SyntaxError:
+        return set()
+    return {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+
+
 def compute_all_values(params: list[Parameter]) -> dict[str, float | None]:
-    """Resolves every parameter's current value, including `derived` ones —
-    recursive with memoization, which gets the same correctness as an
-    explicit topological sort for the scale this is used at, plus cycle
-    detection via the `visiting` set (raises rather than infinite-looping).
-    A `derived` parameter with a formula error or missing dependency
-    resolves to None rather than failing the whole batch.
+    """Resolves every parameter's current value, including `derived` ones,
+    following only the keys each formula actually uses. A cycle raises
+    ParameterCycleError; a `derived` parameter whose formula fails for
+    another reason (a missing dependency, division by zero) resolves to
+    None without affecting the others.
     """
     by_key = {p.key: p for p in params}
     resolved: dict[str, float | None] = {}
-    visiting: set[str] = set()
+    visiting: list[str] = []
 
     def resolve(key: str) -> float | None:
         if key in resolved:
             return resolved[key]
         if key in visiting:
-            raise ParameterError(f"Circular dependency involving '{key}'.")
+            cycle = " → ".join(visiting[visiting.index(key):] + [key])
+            raise ParameterCycleError(f"Circular dependency: {cycle}.")
         param = by_key.get(key)
         if param is None:
             return None
         if param.data_type != "derived":
             resolved[key] = param.value
             return param.value
-        visiting.add(key)
+        visiting.append(key)
         try:
-            deps = {k: resolve(k) for k in by_key if k != key}
+            deps = {k: resolve(k) for k in formula_refs(param.formula) if k in by_key}
             deps = {k: v for k, v in deps.items() if v is not None}
-            value = eval_formula(param.formula or "0", deps)
-        except ParameterError:
-            value = None
-        visiting.discard(key)
+            try:
+                value = eval_formula(param.formula or "0", deps)
+            except (ParameterError, ZeroDivisionError, OverflowError):
+                value = None
+        finally:
+            visiting.pop()
         resolved[key] = value
         return value
 
     for key in by_key:
         resolve(key)
     return resolved
+
+
+def validate_parameters(params: list[Parameter], changed: Parameter) -> None:
+    """Checked before a parameter is saved: the formula only uses
+    arithmetic and existing keys, and no cycle appears."""
+    if changed.data_type == "derived":
+        if not changed.formula:
+            raise ParameterError("A derived parameter needs a formula.")
+        known = {p.key for p in params if p.key != changed.key}
+        unknown = formula_refs(changed.formula) - known
+        if changed.key in formula_refs(changed.formula):
+            raise ParameterCycleError(f"Circular dependency: {changed.key} → {changed.key}.")
+        if unknown:
+            raise ParameterError(f"Unknown parameter(s) in formula: {', '.join(sorted(unknown))}.")
+        eval_formula(changed.formula, {k: 1.0 for k in known})  # syntax and allowed operations only
+    compute_all_values(params)
 
 
 def resolve_parameter_refs_html(text: str, params_by_key: dict[str, Parameter], values: dict[str, float | None]) -> str:

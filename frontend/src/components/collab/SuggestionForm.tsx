@@ -35,7 +35,7 @@ export default function SuggestionForm({ item, itemType, linkTypes, allItems, pr
         .map((a) => ({ value: `attributes.${a.key}`, label: a.label })),
       { value: 'links.add', label: t('Add a link') },
     ],
-    [itemType],
+    [itemType, t],
   )
 
   const [target, setTarget] = useState('description_md')

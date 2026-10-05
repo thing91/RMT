@@ -14,10 +14,13 @@ const TOC_KEY = 'rmt_toc_open'
 
 function readToc() {
   try {
-    return localStorage.getItem(TOC_KEY) !== '0'
+    const stored = localStorage.getItem(TOC_KEY)
+    if (stored) return stored === '1'
   } catch {
-    return true
+    // fall through to the default
   }
+  // Open by default only where there's room for outline, text and details.
+  return window.innerWidth >= 1440
 }
 
 const menuItem = 'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100'
@@ -124,7 +127,7 @@ export default function DocumentView() {
 
         <div className="flex flex-1 overflow-hidden">
           {tocOpen && !splitOpen && (
-            <aside className="w-60 shrink-0 overflow-auto border-r border-slate-200 bg-white py-3">
+            <aside className="w-52 shrink-0 overflow-auto border-r border-slate-200 bg-white py-3">
               <div className="mb-1 px-4 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t('Contents')}</div>
               <DocumentToc documentId={documentId} orgId={org.id} />
             </aside>

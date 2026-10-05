@@ -17,3 +17,12 @@ frontend/dist/
 /.env
 
 .DS_Store
+
+# test output
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e-results.xml
+frontend/vitest.xml
+backend/pytest.xml
+backend/coverage.xml
+backend/.coverage
