@@ -10,7 +10,7 @@ Covers: the generic item-type/attribute model (§4.2, §4.4–4.5), the
 structural/content hierarchy constraint (§4.3), typed traceability links
 with optional source/target restrictions (§4.6), computed section
 numbering, LDAP bind-auth with project roles (§13), a local (no-remote) Git
-sync of every item to YAML (§7), a tree view and table view with saved
+sync of every item to YAML (§7), a document view and table view with saved
 column configurations (§4.8) and a ReqView-style structure toolbar
 (move/indent/cut/copy/paste), a traceability matrix with saved views
 (§10.3), DB-only baselines (§4.7), XLSX/HTML export with a resolved
@@ -129,85 +129,89 @@ APP_BASE_URL=https://your-deployed-frontend-url
 
 ## What to try
 
-- **Projects (landing page)** — `/` lists every project as a card; open one
-  to see its documents, also as cards.
-- **Sidebar** — collapsible (the `‹`/`›` strip between it and the content),
-  persists across reloads, and inside a project is a vertical accordion of
-  four sections — **Table of contents**, **Documents**, **Views**,
-  **Project** — stacked one above the other with exactly one expanded at a
-  time (opening one collapses whichever was open, not independent
-  per-section collapsing). Table of contents lists the open document's
-  sections, nested to their real depth, and jumps straight to one (Tree
-  View selects it; Document View scrolls to it and briefly flashes it);
-  empty until a document is open. Documents shows every document grouped
-  into its (flat, one-level) group plus an "Ungrouped" bucket, mirroring
-  the grouping managed on the project page. Views has Tree/Table/Document
-  View + Split-view for whichever document is open, Export XLSX/HTML, "⚖
-  Review & approval", and every saved Table View as a direct link. Project
-  has Traceability Matrix and Parameters. "Documents" (the project home)
-  isn't its own entry — the project name in the top bar already goes there
-  — and neither is "Graph" (only meaningful centered on an item, reached
-  via an item's "View Graph" link) or "⚙ Project settings" / "Baselines"
-  (both live on the project home page now, alongside the document cards).
-- **Document groups** (§ not in the brief — added by request) — an
-  optional, flat (no nesting) way to organize a project's documents beyond
-  a flat list, managed from the project home page: "+ New group", a
-  per-document dropdown to move it into one, double-click a group's heading
-  to rename it, "Delete group" ungroups its documents rather than deleting
-  them. The sidebar's Documents tab renders the same grouping read-only.
-- **Tree View / Table View structure toolbar** — select an item, then
-  ↑/↓ reorder among siblings, ⇤/⇥ outdent/indent (only onto/off of a
-  Section), ⧉ copy or ✂ cut, then select a target and 📋 paste — pasting
-  onto a Section drops the item inside it, onto a content item places it
-  right after. The clipboard is shared between Tree View and Table View (and
-  across documents) via `ItemClipboardContext`, so cut-here/paste-there
-  survives switching views. Word-style numbering (`1`, `1.1`, `1.2`, …)
-  recomputes automatically.
-- **Table View search** — one box instead of a type dropdown: free text
-  matches key/title/description; a `type:Requirement` token narrows to one
-  item type (fuzzy-matched against name/key/prefix) and unlocks column
-  customization + saved views for it, same as the old dropdown did.
-- **Detail panel is opt-in** — clicking a row/title only selects it
-  (for the structure toolbar); a "Details ▸" button (hover in Table View,
-  always visible in Tree View) or a link-column entry opens the side panel
-  explicitly, so browsing a table doesn't keep popping up a panel.
-- **Point-and-click linking** — every content row gets small "•→" (source)
-  / "→•" (target) buttons on hover. Mark one item as source and another as
-  target — in the same pane, across split-view panes, or across Tree/Table
-  View — and a popup appears to pick the link type and confirm. Creating a
-  link that already exists (same source/target/type) is now rejected with a
-  friendly 409 instead of silently duplicating (there's a DB unique
-  constraint backing this up too).
-- **Review & approval roles per document** — the sidebar's "⚖ Review &
-  approval" panel assigns **reviewers**/**approvers** per document
-  (`document_workflow_roles`): sign-off *authority* used by workflow
+- **Language** — the interface is Polish by default with an English
+  switch in the account menu (avatar, top right); the choice is remembered
+  per browser. Every UI string goes through `t()` (`frontend/src/i18n/`):
+  the English text is the key, `pl.ts` holds the Polish dictionary, and a
+  string without a translation simply shows in English. Requirement content
+  is never translated.
+- **Top bar** — RMT and the breadcrumb on the left; a search box in the
+  middle (**Ctrl+K / ⌘K** from anywhere) that finds requirements by key or
+  text, documents, reviews, change suggestions and projects — Enter opens a
+  requirement right in its document with the details panel open; the
+  notification bell; **⚙** (organization admins only) for the
+  administration page; the account menu (language, glossary, ideas &
+  roadmap, sign out).
+- **Administration** (`/admin`) — one page with tabs for everything
+  organization-wide: item types, link types, workflows, permissions &
+  settings, standards and the glossary. Non-admins can open it read-only.
+- **Projects (landing page)** — every project and library as a card, with
+  "N waiting for you" when something needs you there.
+- **Project sidebar** — three fixed groups: **Documents** (always visible,
+  with avatars of whoever is editing in each), **Work** (My work, Reviews,
+  Change suggestions, Change requests & verification — each with a count of
+  what is waiting for you) and **Project** (Applicability or Library
+  releases, Traceability matrix, Parameters, Baselines, Workflows,
+  Settings). Collapsible with the `‹`/`›` strip.
+- **My work (project home)** — tiles for what is waiting for you (to
+  approve, review votes, suggestions to resolve, to re-verify, change
+  requests to decide) that filter the list below them; every document with
+  a progress bar of its requirements by status; recent activity (with the
+  audit-read permission). Documents and document groups are created here.
+- **Document toolbar** — above the Document and the Table view: the
+  document's name and who is in it, search within the document, a status
+  filter, **Review / Edit** (Edit only for people with edit rights), the
+  Document/Table switch, **Split** (a second document side by side) and a
+  ⋯ menu with Excel/HTML/ReqIF export, ReqIF import, review & approval
+  roles, retired requirements and resolved comments. The outline (table of
+  contents) is a collapsible column on the left.
+- **Reading a document (Review)** — numbered section headings and one
+  compact block per requirement: key, title and status on the first line,
+  the description, and one muted line with the type (only when the
+  document mixes types), the filled-in attributes and the links. Comment,
+  suggest-a-change and change-request icons appear on hover; a counter
+  stays visible when there is something (e.g. 2 open comments). Clicking a
+  requirement opens its details panel. This is the view for everyone
+  without edit rights.
+- **Editing a document (Edit)** — double-click a title or description to
+  edit it in place: the item's edit lock is taken automatically (others see
+  your avatar on it), the change is saved with If-Match when you click away
+  and the lock is released. Selecting a row shows the structure toolbar —
+  ↑/↓ reorder, ⇤/⇥ outdent/indent, copy/cut and paste (the clipboard is
+  shared with the Table view and across documents); hover between rows to
+  insert a new item there. Numbering recomputes automatically. The Table
+  view follows the same Review/Edit modes.
+- **Details panel** — header with the key, type, title, the current status
+  and the next workflow step as one button (other transitions under
+  "More ▾"), "Suggest a change", watch, and a ⋯ menu (graph, delete). Below
+  it a single banner with the most important thing right now (someone else
+  is editing, retired, needs re-verification, open change request,
+  read-only). Tabs: **Details** (description and attributes — click to edit
+  in Edit mode), **Activity** (one timeline of comments, versions with their
+  diffs, workflow steps, signatures and audited events, filterable),
+  **Links**, **Suggestions** and, for library items, **Rules**. There is no
+  separate Edit/Save step.
+- **Statuses** — one palette everywhere: the colors and order come from the
+  workflow definition, so a status looks the same in the document, the
+  panel, the dashboard and the filters.
+- **Document groups** — an optional, flat way to organize a project's
+  documents, managed on the project home: "+ New group", move a document
+  into one from its card, double-click a group heading to rename it.
+- **Point-and-click linking** — in Edit mode every requirement gets small
+  "•→" (source) / "→•" (target) buttons on hover. Mark one item as source
+  and another as target — in the same pane or across split panes — and a
+  popup asks for the link type. Duplicate links are rejected.
+- **Review & approval roles per document** — document toolbar ⋯ → "Review
+  & approval roles": assigns **reviewers**/**approvers** per document
+  (`document_workflow_roles`), the sign-off authority used by workflow
   transitions (`doc:approver` / `doc:reviewer`), distinct from the project
-  RBAC `reviewer` role. The same panel runs one transition on every eligible
-  item of the document at once (e.g. approve everything In Review).
-- **Comments** (§ not in the brief — added by request, GitHub-PR/Google-Docs
-  style rather than arbitrary nesting) — a "Comments" section at the bottom
-  of every content item's detail panel (and inline in Document View's right
-  margin). Post a top-level comment, reply to it (one level of replies per
-  thread, not infinitely nested), edit or delete your own comments, and mark
-  a whole thread "✓ resolved" (by its author or a project editor) — a
-  resolved thread stays visible, greyed in, with who resolved it and when,
-  and can be reopened. Type `@` in the comment box to pick a user from the
-  org directory (autocomplete, same list the workflow role pickers use) —
-  mentioning someone emails them a link straight to the comment. Every new
-  comment/reply also notifies the item's watchers and the thread's
-  participants (bell + email); commenting makes you a watcher. A thread can
-  be turned into a formal change suggestion ("→ Make it a suggestion").
-- **Document View** (§ not in the brief — added by request) — every item in
-  reading order like a printed spec: numbered section headings, each
-  requirement as a borderless block (ID, description, status/type badges,
-  other populated attributes, links), meant for reviewers who aren't
-  systems engineers. A left-margin icon per item shows its link count and
-  comment state (open/resolved/none); clicking the comment icon opens that
-  item's thread inline in the right margin, Word/Google-Docs style — a
-  thread with an unresolved comment is already open on load, no click
-  needed. Read/comment only, no inline editing.
-- **Standards Library** (§5.4, org-wide — `/standards` in the home
-  sidebar) — add a standard as an uploaded PDF or an external link, add
+  RBAC `reviewer` role. The same dialog runs one transition on every
+  eligible item of the document at once.
+- **Comments** — on the Activity tab of a requirement: post a comment,
+  reply (one level), edit or delete your own, resolve/reopen a thread,
+  `@`-mention people (they get an email), and turn a thread into a formal
+  change suggestion. Commenting makes you a watcher.
+- **Standards Library** (§5.4, org-wide — ⚙ Administration → Standards) — add a standard as an uploaded PDF or an external link, add
   locators (e.g. "Clause 5.4.2", optionally a page number) once, then cite
   it from any item's description with `[[ref:CODE#locator]]`. Resolves to
   an interactive chip (in the detail panel's live preview and in HTML
@@ -215,8 +219,8 @@ APP_BASE_URL=https://your-deployed-frontend-url
   standard "superseded by" a newer one flags every existing citation with
   ⚠ instead of breaking them. A consistency report calls out standards
   never cited and citations pointing at a superseded version.
-- **Reference Documents** (§5.4, per-project — "⚙ Project settings" →
-  Reference Documents tab) — same citation mechanism, but scoped to one
+- **Reference Documents** (§5.4, per-project — project sidebar →
+  Settings → Reference documents) — same citation mechanism, but scoped to one
   project and following its own visibility/ACL instead of being org-wide
   (e.g. the analysis backing a specific requirement's rationale).
 - **Parameters** (§5.3, Valispace-style — a project's sidebar →
@@ -233,7 +237,7 @@ APP_BASE_URL=https://your-deployed-frontend-url
   coverage grid; uncovered rows are called out above the table. Save a
   combination as a named, Shared-or-Personal view (Personal views are only
   ever visible to whoever saved them).
-- **Graph** — open an item's detail panel and click "View Graph" to center
+- **Graph** — in an item's details panel choose ⋯ → "Graph" to center
   a hierarchical relationship graph on it, with independent up/down depth
   controls, edge labels naming the link type, an optional "Show
   description" toggle per node, click-to-select, and double-click-to-re-center.
@@ -246,12 +250,12 @@ APP_BASE_URL=https://your-deployed-frontend-url
 - **Baselines** — freeze every item/link in the project as of right now
   under a name: the exact item versions, parameter values and the
   applicability matrix. Tick "Milestone" (project admins) to make the frozen
-  items read-only outside Draft until a change request is accepted. The Git
-  Sync Log below shows every local commit triggered by item writes (§7) —
-  not tied to baselines yet (`baselines.git_commit_sha` stays null).
+  items read-only outside Draft until a change request is accepted. Project
+  sidebar → Baselines; the collapsible "Change history" below the list shows
+  every local Git commit triggered by item writes (§7).
 - **Deleting an item** — requirements are retired with the "Make obsolete"
-  transition, never deleted, so history and traceability survive (the tree
-  hides obsolete items unless "Show obsolete" is ticked). Only a brand-new,
+  transition, never deleted, so history and traceability survive (documents
+  hide retired items unless ⋯ → "Show retired requirements" is ticked). Only a brand-new,
   untouched item (version 1, no links, no comments) or an empty section can
   be deleted.
 - **Roles** — sign out and confirm reads still work on the public Demo
@@ -290,11 +294,11 @@ Frontend tests: `cd frontend && npm test` (Vitest + Testing Library).
   the document structure (others' moves wait ~90 s); "⇅ Reorganize…" takes
   an explicit one. Structure and content never block each other.
 - **Versions & audit** — every content change is a new version
-  (`item_versions`): History tab with word diffs between any two versions
-  and the exact text of every approved version. Workflow transitions,
+  (`item_versions`), shown on the details panel's Activity timeline with a
+  word diff against the previous version. Workflow transitions,
   overrides, deletions, permission changes etc. go to the append-only
-  `audit_events` log (project → "Change requests & suspect links" → Audit).
-- **Configurable workflows** — `/admin/workflows` (org default per item
+  `audit_events` log (project → "Change requests & verification" → Audit log).
+- **Configurable workflows** — ⚙ Administration → Workflows (org default per item
   type) and a project's "Workflows" page (override). Templates: Basic,
   Change-managed (default for requirements), Regulated (e-signature,
   author can't approve own requirement, no open comments/Major
@@ -304,14 +308,14 @@ Frontend tests: `cd frontend && npm test` (Vitest + Testing Library).
 - **Change management** — Approved → "Request change" creates a change
   request with impact analysis (linked items + children); after it's
   accepted the item is Draft again, and re-approval flags every linked item
-  **suspect** (⚠ in the tree, re-verify from the Links tab or the
-  "Change requests & suspect links" page).
+  **suspect** (⚠ next to the requirement; re-verify from the Links tab or
+  the "Change requests & verification" page).
 - **Reviews** — project → Reviews: a review covers chosen items (pinned to
   the reviewed version), has required reviewers who vote, collects change
   suggestions, can require all Major (or all) suggestions resolved and/or a
   complete applicability matrix before closing, and can approve all its
   items on close.
-- **Change suggestions (RIDs)** — "Suggest change" works for anyone who
+- **Change suggestions (RIDs)** — "Suggest a change" works for anyone who
   can read the item, without edit rights or the edit lock, in parallel.
   Each has an ID (SUG-0001), target field, word diff, justification,
   type/severity and its own discussion. The owner (`owner` attribute) or
@@ -322,22 +326,22 @@ Frontend tests: `cd frontend && npm test` (Vitest + Testing Library).
   once the item is editable. Project-wide list + Excel RID export.
 - **Who is editing right now** — a round avatar with the person's initials
   (stable color per person, ✎ for an item, ⇅ for the document structure)
-  appears next to every requirement someone is editing — tree, table and
-  document views — and next to every document someone is working in
-  (sidebar, project home, view header). Hover for who and since when.
+  appears next to every requirement someone is editing — document and
+  table views — and next to every document someone is working in
+  (sidebar, project home, document toolbar). Hover for who and since when.
   Driven by a live Server-Sent Events stream (`GET /api/v1/events`), so it
   appears and disappears within a second; expired leases are swept every
   30 s. (The stream is per process — a multi-worker deployment would need
   a shared broker such as Postgres LISTEN/NOTIFY.)
-- **Organization settings** (`/admin/organization`, org admins) — lock
+- **Organization settings** (⚙ Administration → Permissions & settings) — lock
   timeouts, separation-of-duties switches, and the role → permission
   matrix (grant/revoke per role, defaults marked).
 - **Schema is org-admin only** — item types, link types, glossary and
   standards can only be changed by an organization admin now.
-- **Key prefixes** — ⚙ Project settings → General: an optional prefix for
+- **Key prefixes** — project sidebar → Settings → General: an optional prefix for
   new item keys (`GENSAT-SYS-001`); libraries get one by default.
-- **ReqIF for documents** — Views → "ReqIF" exports the open document,
-  "Import…" appends a ReqIF specification (hierarchy → sections, leaves →
+- **ReqIF for documents** — document toolbar ⋯ → "Export to ReqIF" /
+  "Import ReqIF…", which appends a ReqIF specification (hierarchy → sections, leaves →
   requirements, attributes matched by name).
 - **Notifications** — the bell in the top bar (pushed live) plus email
   for status changes, comments, mentions, suggestions, review invites, lock

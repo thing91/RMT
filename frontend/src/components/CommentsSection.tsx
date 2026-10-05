@@ -48,7 +48,7 @@ function renderWithMentions(body: string, users: OrgUser[]) {
   )
 }
 
-function CommentForm({
+export function CommentForm({
   onSubmit,
   onCancel,
   autoFocus,
@@ -196,7 +196,7 @@ function CommentRow({
   )
 }
 
-function Thread({
+export function Thread({
   thread,
   currentUserId,
   users,

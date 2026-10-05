@@ -27,8 +27,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useI18n, useT } from '../i18n'
 import AttributeField from './AttributeField'
 import { attrDisplay, isLongText } from './attrDisplay'
-import CommentsSection from './CommentsSection'
-import HistoryPanel from './collab/HistoryPanel'
+import ActivityTimeline from './collab/ActivityTimeline'
 import { InlineEditField, useItemInlineSave } from './collab/InlineEdit'
 import LibraryRulesPanel from './collab/LibraryRulesPanel'
 import LockBanner from './collab/LockBanner'
@@ -439,18 +438,7 @@ export default function ItemDetailPanel({
         )}
 
         {tab === 'activity' && (
-          <div className="space-y-6">
-            <CommentsSection
-              itemId={item.id}
-              orgId={orgId}
-              onConvert={(c) => setSuggesting({ fromComment: c })}
-              title={t('Comments')}
-            />
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('History')}</h3>
-              <HistoryPanel itemId={item.id} currentVersion={item.version} />
-            </div>
-          </div>
+          <ActivityTimeline itemId={item.id} orgId={orgId} onConvert={(c) => setSuggesting({ fromComment: c })} />
         )}
         {tab === 'suggestions' && (
           <SuggestionsPanel item={item} itemType={itemType} orgId={orgId} onNew={() => setSuggesting({})} />

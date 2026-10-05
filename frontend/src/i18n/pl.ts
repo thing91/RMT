@@ -878,4 +878,8 @@ export const pl: Record<string, string> = {
   'Review & approval — {name}': 'Przegląd i zatwierdzanie — {name}',
   'First release — {n} requirements.': 'Pierwsze wydanie — wymagań: {n}.',
   'Organization settings — {name}': 'Ustawienia organizacji — {name}',
+
+  // --- activity
+  'Everything': 'Wszystko',
+  'Changes': 'Zmiany',
 }
