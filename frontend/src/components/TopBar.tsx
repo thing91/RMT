@@ -8,7 +8,7 @@ import AuthBar from './AuthBar'
 import CommandPalette from './CommandPalette'
 import NotificationBell from './NotificationBell'
 
-/** RMT · breadcrumb · search (Ctrl+K) · bell · ⚙ (org admins) · account. */
+/** RMT · breadcrumb · search (Ctrl+K) · glossary · bell · ⚙ (org admins) · account. */
 export default function TopBar({ children }: { children?: ReactNode }) {
   const { projectId } = useParams<{ projectId?: string }>()
   const { user } = useAuth()
@@ -27,6 +27,17 @@ export default function TopBar({ children }: { children?: ReactNode }) {
         <CommandPalette />
       </div>
       <div className="flex shrink-0 items-center gap-1">
+        <Link
+          to="/glossary"
+          title={t('Glossary')}
+          aria-label={t('Glossary')}
+          className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+          </svg>
+        </Link>
         <NotificationBell />
         {orgAdmin && (
           <Link

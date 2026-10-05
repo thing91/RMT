@@ -1,7 +1,6 @@
 import { NavLink, useParams } from 'react-router-dom'
 import { useIsOrgAdmin } from '../api/collabHooks'
 import { useT } from '../i18n'
-import GlossaryAdmin from './GlossaryAdmin'
 import ItemTypesAdmin from './ItemTypesAdmin'
 import LinkTypesAdmin from './LinkTypesAdmin'
 import OrganizationSettings from './OrganizationSettings'
@@ -14,7 +13,6 @@ const TABS = [
   { id: 'workflows', label: 'Workflows', el: <WorkflowsAdmin /> },
   { id: 'organization', label: 'Permissions & settings', el: <OrganizationSettings /> },
   { id: 'standards', label: 'Standards', el: <StandardsAdmin /> },
-  { id: 'glossary', label: 'Glossary', el: <GlossaryAdmin /> },
 ]
 
 /** Everything that configures the organization, in one place behind the ⚙

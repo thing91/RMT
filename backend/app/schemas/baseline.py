@@ -18,6 +18,8 @@ class BaselineRead(BaseModel):
 
     id: uuid.UUID
     project_id: uuid.UUID
+    document_id: uuid.UUID | None = None
+    document_name: str | None = None
     name: str
     git_commit_sha: str | None
     created_by: str | None

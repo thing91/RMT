@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useI18n } from '../i18n'
 
 /** Account menu (avatar, top right): who you are, interface language,
- * glossary, ideas & roadmap, sign out — or the sign-in form. Application
+ * ideas & roadmap, sign out — or the sign-in form. Application
  * administration has its own ⚙ button next to it (AdminButton). */
 export default function AuthBar() {
   const { user, login, logout } = useAuth()
@@ -75,9 +75,6 @@ export default function AuthBar() {
                   </span>
                 </div>
                 <div className="border-t border-slate-100 pt-1">
-                  <Link to="/glossary" className={item} onClick={() => setOpen(false)}>
-                    {t('Glossary')}
-                  </Link>
                   <Link to="/roadmap" className={item} onClick={() => setOpen(false)}>
                     {t('Ideas & roadmap')}
                   </Link>

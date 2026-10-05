@@ -12,7 +12,64 @@ from app.config import settings
 from app.database import Base, engine
 from app import models  # noqa: F401  (registers all models on Base metadata)
 
-app = FastAPI(title="Requirements Management Tool", version="0.1.0")
+API_DESCRIPTION = """
+REST API of RMT — everything the web application does goes through it.
+
+**Authentication.** Send `Authorization: Bearer <token>` with either a
+session token (`POST /api/v1/auth/login`) or a personal API token
+(`rmt_…`, created under ⚙ Administration → API). The caller has exactly the
+permissions of the token's owner. Reads of public projects work without a
+token.
+
+**Optimistic concurrency.** Item reads return an `ETag`; writes to item
+content require `If-Match` with it (428 without, 412 with a diff when
+someone else changed the item meanwhile).
+
+**History.** Every record's changes are available from
+`GET /api/v1/changes/{entity_type}/{entity_id}`.
+"""
+
+app = FastAPI(
+    title="Requirements Management Tool",
+    version="0.1.0",
+    description=API_DESCRIPTION,
+    # Under /api so they're reachable through the frontend's /api proxy too.
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
+
+
+def _openapi_with_bearer():
+    """Adds the bearer scheme so Swagger's "Authorize" button works."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+
+    schema = get_openapi(title=app.title, version=app.version, description=app.description, routes=app.routes)
+    schema.setdefault("components", {})["securitySchemes"] = {
+        "bearer": {"type": "http", "scheme": "bearer", "description": "Session token or personal API token (rmt_…)"}
+    }
+    schema["security"] = [{"bearer": []}, {}]
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = _openapi_with_bearer
+
+
+@app.middleware("http")
+async def _request_actor(request, call_next):
+    """A fresh "who is acting" holder per request, filled in by
+    get_current_user and read by the record-history hook."""
+    from app.services.record_history import new_request_actor, reset_request_actor
+
+    token = new_request_actor()
+    try:
+        return await call_next(request)
+    finally:
+        reset_request_actor(token)
+
 
 app.add_middleware(
     CORSMiddleware,

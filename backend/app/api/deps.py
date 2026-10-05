@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.project import Project
 from app.models.user import User
+from app.services.api_tokens import API_TOKEN_PREFIX, user_for_api_token
 from app.services.auth import AuthError, decode_access_token
 from app.services.permissions import can_read, has_org_permission, has_role_at_least
+from app.services.record_history import set_actor
 
 __all__ = ["get_db"]
 
@@ -16,17 +18,26 @@ def get_current_user(
     authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> User | None:
-    """Returns None for an anonymous caller — most reads stay open per §13.3;
+    """Accepts a session JWT or a personal API token (`rmt_…`).
+
+    Returns None for an anonymous caller — most reads stay open per §13.3;
     only specific project content is gated (§13.2/13.4), enforced separately.
     """
     if not authorization or not authorization.lower().startswith("bearer "):
         return None
-    token = authorization.split(" ", 1)[1]
-    try:
-        payload = decode_access_token(token)
-    except AuthError:
-        return None
-    return db.get(User, uuid.UUID(payload["sub"]))
+    token = authorization.split(" ", 1)[1].strip()
+    if token.startswith(API_TOKEN_PREFIX):
+        user = user_for_api_token(db, token)
+    else:
+        try:
+            payload = decode_access_token(token)
+        except AuthError:
+            return None
+        user = db.get(User, uuid.UUID(payload["sub"]))
+    if user is not None:
+        # Who is making this request — stamped on every record_changes row.
+        set_actor(user.id, user.display_name)
+    return user
 
 
 def require_user(user: User | None = Depends(get_current_user)) -> User:

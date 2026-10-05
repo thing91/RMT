@@ -27,6 +27,7 @@ export default function App() {
       <Route element={<HomeLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/glossary" element={<Navigate to="/glossary" replace />} />
         <Route path="/admin/:tab" element={<AdminPage />} />
         <Route path="/standards" element={<Navigate to="/admin/standards" replace />} />
         <Route path="/glossary" element={<GlossaryAdmin />} />

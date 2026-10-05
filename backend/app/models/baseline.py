@@ -20,6 +20,11 @@ class Baseline(Base, IdMixin, TimestampMixin):
     project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id"), index=True
     )
+    # Set for a document baseline (a frozen version of one document, e.g. for
+    # a System Requirements Review); null for a whole-project baseline.
+    document_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(255))
     git_commit_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
     snapshot: Mapped[dict] = mapped_column(JSONB)

@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     auth,
     baselines,
+    changes,
     comments,
     events,
     exports,
@@ -60,3 +61,4 @@ api_router.include_router(library.router)
 api_router.include_router(roadmap.router)
 api_router.include_router(events.router)
 api_router.include_router(workspace.router)
+api_router.include_router(changes.router)

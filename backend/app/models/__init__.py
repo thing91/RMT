@@ -1,3 +1,4 @@
+from app.models.api_token import ApiToken
 from app.models.audit import AuditEvent
 from app.models.baseline import Baseline
 from app.models.comment import ItemComment
@@ -17,6 +18,7 @@ from app.models.parameter import Parameter, ParameterLink
 from app.models.project import Project
 from app.models.permission import RolePermission
 from app.models.project_access import ProjectAccess
+from app.models.record_change import RecordChange
 from app.models.reference import ReferenceLocator, ReferenceSource
 from app.models.suggestion import Suggestion
 from app.models.table_view import TableView
@@ -34,6 +36,8 @@ from app.models.workflow_def import (
 )
 
 __all__ = [
+    "ApiToken",
+    "RecordChange",
     "Organization",
     "Project",
     "Document",
@@ -81,3 +85,6 @@ __all__ = [
     "IdeaComment",
     "ReleaseNote",
 ]
+
+# Registers the ORM hook that writes record_changes for every flush.
+from app.services import record_history  # noqa: E402,F401
