@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import { useBaselines, useCreateBaseline, useDeleteBaseline, useGitLog } from '../api/hooks'
 import { useI18n } from '../i18n'
@@ -63,6 +63,7 @@ export default function BaselinesPage() {
           <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
             <tr>
               <th className="px-3 py-2 font-medium">{t('Name')}</th>
+              <th className="px-3 py-2 font-medium">{t('Scope')}</th>
               <th className="px-3 py-2 font-medium">{t('Created')}</th>
               <th className="px-3 py-2 font-medium">{t('Requirements')}</th>
               <th className="px-3 py-2" />
@@ -77,6 +78,18 @@ export default function BaselinesPage() {
                     <span className="ml-2 rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700">
                       {t('milestone')}
                     </span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-slate-600">
+                  {b.document_id ? (
+                    <Link
+                      to={`/projects/${projectId}/documents/${b.document_id}/baselines/${b.id}`}
+                      className="text-blue-700 hover:underline"
+                    >
+                      {b.document_name ?? t('Document')}
+                    </Link>
+                  ) : (
+                    t('Whole project')
                   )}
                 </td>
                 <td className="px-3 py-2 text-slate-500">{new Date(b.created_at).toLocaleString()}</td>
@@ -95,7 +108,7 @@ export default function BaselinesPage() {
             ))}
             {(baselines ?? []).length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={5} className="px-3 py-8 text-center text-slate-400">
                   {t('No baselines yet. Create one when you reach a milestone.')}
                 </td>
               </tr>

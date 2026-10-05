@@ -3,6 +3,7 @@ import HomeLayout from './layouts/HomeLayout'
 import ProjectLayout from './layouts/ProjectLayout'
 import AdminPage from './pages/AdminPage'
 import BaselinesPage from './pages/BaselinesPage'
+import DocumentBaselineView from './pages/DocumentBaselineView'
 import DocumentView from './pages/DocumentView'
 import GlossaryAdmin from './pages/GlossaryAdmin'
 import GraphView from './pages/GraphView'
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="releases" element={<LibraryReleasesPage />} />
         <Route path="documents/:documentId" element={<DocumentView />} />
         <Route path="documents/:documentId/table" element={<TableView />} />
+        <Route path="documents/:documentId/baselines/:baselineId" element={<DocumentBaselineView />} />
         {/* Old Document View address — the document view is now the default. */}
         <Route path="documents/:documentId/document" element={<ToDocumentRoot />} />
       </Route>

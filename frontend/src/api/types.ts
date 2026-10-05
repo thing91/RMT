@@ -262,6 +262,9 @@ export interface ItemGraph {
 export interface Baseline {
   id: string
   project_id: string
+  /** Set for a document baseline; null for a whole-project baseline. */
+  document_id: string | null
+  document_name: string | null
   name: string
   git_commit_sha: string | null
   created_by: string | null
@@ -269,6 +272,40 @@ export interface Baseline {
   item_count: number
   description: string | null
   locks_items: boolean
+}
+
+export interface BaselineSnapshotItem {
+  id: string
+  document_id: string
+  parent_id: string | null
+  item_type_id: string
+  key: string | null
+  title: string
+  description_md: string | null
+  attributes: Record<string, unknown>
+  order: number
+  version: number
+  obsolete: boolean
+}
+
+export interface BaselineDetail extends Baseline {
+  snapshot: {
+    captured_at: string
+    document?: { id: string; name: string }
+    items: BaselineSnapshotItem[]
+    links: { id: string; source_item_id: string; target_item_id: string; link_type_id: string }[]
+    external_items?: Record<string, { key: string | null; title: string; document: string }>
+    item_types?: Record<
+      string,
+      {
+        name: string
+        behavior: 'structural' | 'content'
+        color: string | null
+        attributes: { key: string; label: string; data_type: string; enum_options: EnumOption[] | null; unit: string | null; order: number }[]
+      }
+    >
+    link_types?: Record<string, { name: string; inverse_name: string }>
+  }
 }
 
 export interface GitCommit {

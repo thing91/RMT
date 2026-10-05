@@ -5,6 +5,7 @@ import { useDocuments } from '../api/hooks'
 import { useT } from '../i18n'
 import { DocumentPresence } from './collab/PresenceAvatar'
 import ReqifImportModal from './collab/ReqifImportModal'
+import { BaselineSwitcher, CreateBaselineDialog } from './DocumentBaselineControls'
 import DocumentWorkflowModal from './DocumentWorkflowModal'
 
 const segment = (active: boolean) =>
@@ -36,6 +37,7 @@ export default function DocumentToolbar({
   const [menuOpen, setMenuOpen] = useState(false)
   const [reqifOpen, setReqifOpen] = useState(false)
   const [rolesOpen, setRolesOpen] = useState(false)
+  const [baselineOpen, setBaselineOpen] = useState(false)
   if (!projectId || !documentId) return null
 
   const doc = documents?.find((d) => d.id === documentId)
@@ -56,6 +58,7 @@ export default function DocumentToolbar({
       {left}
       <h1 className="min-w-0 truncate text-sm font-semibold text-slate-800">{doc?.name ?? ''}</h1>
       <DocumentPresence documentId={documentId} size={20} />
+      <BaselineSwitcher />
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{children}</div>
 
       <div className="flex overflow-hidden rounded-md border border-slate-200">
@@ -113,6 +116,17 @@ export default function DocumentToolbar({
                 ) : null}
               </div>
               <div className="mt-1 border-t border-slate-100 pt-1">
+                {can(perms, 'baseline.create') && (
+                  <button
+                    className={menuItem}
+                    onClick={() => {
+                      close()
+                      setBaselineOpen(true)
+                    }}
+                  >
+                    {t('Create a baseline…')}
+                  </button>
+                )}
                 <button
                   className={menuItem}
                   onClick={() => {
@@ -128,6 +142,7 @@ export default function DocumentToolbar({
         )}
       </div>
 
+      {baselineOpen && <CreateBaselineDialog onClose={() => setBaselineOpen(false)} />}
       {reqifOpen && <ReqifImportModal documentId={documentId} onClose={() => setReqifOpen(false)} />}
       {rolesOpen && (
         <DocumentWorkflowModal

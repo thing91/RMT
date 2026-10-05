@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   Baseline,
+  BaselineDetail,
   Document,
   DocumentGroup,
   GitCommit,
@@ -461,6 +462,32 @@ export function useCreateBaseline(projectId: string) {
     mutationFn: async (payload: { name: string; description?: string; locks_items?: boolean }) =>
       (await api.post<Baseline>(`/projects/${projectId}/baselines`, payload)).data,
     onSuccess: invalidate,
+  })
+}
+
+export function useDocumentBaselines(documentId?: string) {
+  return useQuery({
+    queryKey: ['baselines', 'document', documentId],
+    queryFn: async () => (await api.get<Baseline[]>(`/documents/${documentId}/baselines`)).data,
+    enabled: !!documentId,
+  })
+}
+
+export function useCreateDocumentBaseline(documentId: string) {
+  const invalidate = useInvalidate(['baselines', 'document-tree', 'project-items'])
+  return useMutation({
+    mutationFn: async (payload: { name: string; description?: string; locks_items?: boolean }) =>
+      (await api.post<Baseline>(`/documents/${documentId}/baselines`, payload)).data,
+    onSuccess: invalidate,
+  })
+}
+
+export function useBaseline(baselineId?: string) {
+  return useQuery({
+    queryKey: ['baseline', baselineId],
+    queryFn: async () => (await api.get<BaselineDetail>(`/baselines/${baselineId}`)).data,
+    enabled: !!baselineId,
+    staleTime: Infinity, // frozen by definition
   })
 }
 

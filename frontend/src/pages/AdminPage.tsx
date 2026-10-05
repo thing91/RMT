@@ -6,6 +6,7 @@ import LinkTypesAdmin from './LinkTypesAdmin'
 import OrganizationSettings from './OrganizationSettings'
 import StandardsAdmin from './StandardsAdmin'
 import WorkflowsAdmin from './WorkflowsAdmin'
+import ApiPage from './ApiPage'
 
 const TABS = [
   { id: 'item-types', label: 'Item types', el: <ItemTypesAdmin /> },
@@ -13,6 +14,7 @@ const TABS = [
   { id: 'workflows', label: 'Workflows', el: <WorkflowsAdmin /> },
   { id: 'organization', label: 'Permissions & settings', el: <OrganizationSettings /> },
   { id: 'standards', label: 'Standards', el: <StandardsAdmin /> },
+  { id: 'api', label: 'API', el: <ApiPage /> },
 ]
 
 /** Everything that configures the organization, in one place behind the ⚙
@@ -26,7 +28,7 @@ export default function AdminPage() {
     <div className="flex h-full flex-col">
       <div className="border-b border-slate-200 bg-white px-6 pt-5">
         <h1 className="text-lg font-semibold text-slate-800">{t('Organization administration')}</h1>
-        {!isAdmin && (
+        {!isAdmin && active.id !== 'api' && (
           <p className="mt-1 text-xs text-slate-500">{t('Read-only — only an organization admin can make changes.')}</p>
         )}
         <nav className="mt-3 flex gap-1 overflow-x-auto">

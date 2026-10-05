@@ -75,6 +75,9 @@ export default function AuthBar() {
                   </span>
                 </div>
                 <div className="border-t border-slate-100 pt-1">
+                  <Link to="/admin/api" className={item} onClick={() => setOpen(false)}>
+                    {t('API & tokens')}
+                  </Link>
                   <Link to="/roadmap" className={item} onClick={() => setOpen(false)}>
                     {t('Ideas & roadmap')}
                   </Link>
