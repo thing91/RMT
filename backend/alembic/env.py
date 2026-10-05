@@ -18,7 +18,10 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
+# Called in-process (database import, tests) with a ready connection and
+# without touching the host application's logging setup.
+_external_connection = config.attributes.get("connection")
+if config.config_file_name is not None and _external_connection is None:
     fileConfig(config.config_file_name)
 
 # The app's own Settings (env vars / .env) are the single source of truth
@@ -64,6 +67,11 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    if _external_connection is not None:
+        context.configure(connection=_external_connection, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
+        return
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

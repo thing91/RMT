@@ -4,6 +4,7 @@ from app.api.v1 import (
     auth,
     baselines,
     changes,
+    database,
     comments,
     events,
     exports,
@@ -62,3 +63,4 @@ api_router.include_router(roadmap.router)
 api_router.include_router(events.router)
 api_router.include_router(workspace.router)
 api_router.include_router(changes.router)
+api_router.include_router(database.router)

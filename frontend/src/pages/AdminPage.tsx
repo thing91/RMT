@@ -7,6 +7,7 @@ import OrganizationSettings from './OrganizationSettings'
 import StandardsAdmin from './StandardsAdmin'
 import WorkflowsAdmin from './WorkflowsAdmin'
 import ApiPage from './ApiPage'
+import DatabasePage from './DatabasePage'
 
 const TABS = [
   { id: 'item-types', label: 'Item types', el: <ItemTypesAdmin /> },
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'organization', label: 'Permissions & settings', el: <OrganizationSettings /> },
   { id: 'standards', label: 'Standards', el: <StandardsAdmin /> },
   { id: 'api', label: 'API', el: <ApiPage /> },
+  { id: 'database', label: 'Backup & migration', el: <DatabasePage /> },
 ]
 
 /** Everything that configures the organization, in one place behind the ⚙
