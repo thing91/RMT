@@ -8,7 +8,7 @@ const STORAGE_KEY = 'rmt_lang'
  * string without a Polish entry simply stays English (never blank).
  * `{name}` placeholders are filled from `vars`. Requirement content
  * (titles, descriptions) is never translated — only the interface. */
-export type T = (text: string, vars?: Record<string, string | number>) => string
+export type T = (text: string, vars?: Record<string, string | number | null | undefined>) => string
 
 interface I18n {
   lang: Lang
@@ -16,9 +16,9 @@ interface I18n {
   t: T
 }
 
-function fill(text: string, vars?: Record<string, string | number>): string {
+function fill(text: string, vars?: Record<string, string | number | null | undefined>): string {
   if (!vars) return text
-  return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m))
+  return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m))
 }
 
 function initialLang(): Lang {

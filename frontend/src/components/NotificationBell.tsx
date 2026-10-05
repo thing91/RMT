@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from '../api/collabHooks'
 import { useAuth } from '../auth/AuthContext'
+import { useT } from '../i18n'
 
 /** In-app inbox: status changes, comments, mentions, suggestions,
  * review invitations, lock overrides. Polls every 30 s. */
 export default function NotificationBell() {
+  const t = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const { data } = useNotifications(!!user)
@@ -20,7 +22,7 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen((v) => !v)}
         className="relative rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-        title="Notifications"
+        title={t('Notifications')}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ''}`}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -35,13 +37,13 @@ export default function NotificationBell() {
       </button>
       {open && (
         <>
-          <button aria-label="Close" onClick={() => setOpen(false)} className="fixed inset-0 z-10 cursor-default" />
+          <button aria-label={t('Close')} onClick={() => setOpen(false)} className="fixed inset-0 z-10 cursor-default" />
           <div className="absolute right-0 z-20 mt-2 flex max-h-[70vh] w-96 flex-col rounded-lg border border-slate-200 bg-white shadow-lg">
             <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
-              <span className="text-sm font-semibold text-slate-700">Notifications</span>
+              <span className="text-sm font-semibold text-slate-700">{t('Notifications')}</span>
               {unread > 0 && (
                 <button className="text-xs text-blue-600 hover:underline" onClick={() => markAll.mutate()}>
-                  Mark all read
+                  {t('Mark all read')}
                 </button>
               )}
             </div>
@@ -68,7 +70,7 @@ export default function NotificationBell() {
                 </li>
               ))}
               {(data?.items ?? []).length === 0 && (
-                <li className="px-3 py-6 text-center text-xs text-slate-400">Nothing yet.</li>
+                <li className="px-3 py-6 text-center text-xs text-slate-400">{t('Nothing yet.')}</li>
               )}
             </ul>
           </div>

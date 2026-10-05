@@ -10,8 +10,10 @@ import {
   useOrg,
   useTraceabilityMatrix,
 } from '../api/hooks'
+import { useT } from '../i18n'
 
 export default function TraceabilityMatrixPage() {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const { org } = useOrg()
   const orgId = org?.id
@@ -62,7 +64,7 @@ export default function TraceabilityMatrixPage() {
           setViewId(v.id)
           setNewViewName(null)
         },
-        onError: (err) => setError(apiErrorMessage(err, 'Could not save this view.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not save this view.'))),
       },
     )
   }
@@ -80,14 +82,14 @@ export default function TraceabilityMatrixPage() {
   return (
     <div className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold text-slate-800">Traceability Matrix</h1>
+        <h1 className="text-lg font-semibold text-slate-800">{t('Traceability Matrix')}</h1>
         {views && views.length > 0 && (
           <select
             className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
             value={viewId}
             onChange={(e) => applyView(e.target.value)}
           >
-            <option value="">Custom selection…</option>
+            <option value="">{t('Custom selection…')}</option>
             {views.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name}
@@ -99,7 +101,7 @@ export default function TraceabilityMatrixPage() {
 
       <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Rows</label>
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t('Rows')}</label>
           <select
             className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
             value={rowTypeId}
@@ -108,7 +110,7 @@ export default function TraceabilityMatrixPage() {
               setViewId('')
             }}
           >
-            <option value="">Select type…</option>
+            <option value="">{t('Select type…')}</option>
             {contentTypes.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -117,7 +119,7 @@ export default function TraceabilityMatrixPage() {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Columns</label>
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t('Columns')}</label>
           <select
             className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
             value={colTypeId}
@@ -126,7 +128,7 @@ export default function TraceabilityMatrixPage() {
               setViewId('')
             }}
           >
-            <option value="">Select type…</option>
+            <option value="">{t('Select type…')}</option>
             {contentTypes.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -135,7 +137,7 @@ export default function TraceabilityMatrixPage() {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Via link type</label>
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t('Via link type')}</label>
           <select
             className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
             value={linkTypeId}
@@ -144,7 +146,7 @@ export default function TraceabilityMatrixPage() {
               setViewId('')
             }}
           >
-            <option value="">Select link type…</option>
+            <option value="">{t('Select link type…')}</option>
             {(linkTypes ?? []).map((lt) => (
               <option key={lt.id} value={lt.id}>
                 {lt.name}
@@ -158,7 +160,7 @@ export default function TraceabilityMatrixPage() {
             onClick={() => setNewViewName('')}
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
-            Save as view
+            {t('Save as view')}
           </button>
         )}
         {activeView && (
@@ -169,7 +171,7 @@ export default function TraceabilityMatrixPage() {
             }}
             className="text-sm text-slate-400 hover:text-red-600"
           >
-            Delete view
+            {t('Delete view')}
           </button>
         )}
       </div>
@@ -185,7 +187,7 @@ export default function TraceabilityMatrixPage() {
           <input
             autoFocus
             className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
-            placeholder="View name (e.g. Req ↔ VA coverage)…"
+            placeholder={t('View name (e.g. Req ↔ VA coverage)…')}
             value={newViewName}
             onChange={(e) => setNewViewName(e.target.value)}
           />
@@ -193,16 +195,16 @@ export default function TraceabilityMatrixPage() {
             className="rounded-md border border-slate-300 px-1.5 py-1 text-sm"
             value={newViewScope}
             onChange={(e) => setNewViewScope(e.target.value as 'personal' | 'shared')}
-            title="Shared views are visible to everyone on the project; personal views are just for you"
+            title={t('Shared views are visible to everyone on the project; personal views are just for you')}
           >
-            <option value="shared">Shared</option>
-            <option value="personal">Personal</option>
+            <option value="shared">{t('Shared')}</option>
+            <option value="personal">{t('Personal')}</option>
           </select>
           <button type="submit" className="rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700">
-            Save
+            {t('Save')}
           </button>
           <button type="button" onClick={() => setNewViewName(null)} className="text-sm text-slate-400 hover:text-slate-700">
-            Cancel
+            {t('Cancel')}
           </button>
         </form>
       )}
@@ -210,12 +212,12 @@ export default function TraceabilityMatrixPage() {
 
       {!rowTypeId || !colTypeId || !linkTypeId ? (
         <p className="text-sm text-slate-400">
-          Pick a row type, column type, and link type to see coverage.
+          {t('Pick a row type, column type, and link type to see coverage.')}
         </p>
       ) : isLoading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <p className="text-sm text-slate-400">{t('Loading…')}</p>
       ) : !matrix || matrix.rows.length === 0 || matrix.cols.length === 0 ? (
-        <p className="text-sm text-slate-400">No items of the selected types yet.</p>
+        <p className="text-sm text-slate-400">{t('No items of the selected types yet.')}</p>
       ) : (
         <>
           {uncovered.size > 0 && (

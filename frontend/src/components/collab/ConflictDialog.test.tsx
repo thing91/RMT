@@ -31,7 +31,7 @@ describe('ConflictDialog', () => {
         onClose={vi.fn()}
       />,
     )
-    expect(screen.getByText('version 2')).toBeTruthy()
+    expect(screen.getByText(/started from version 2; the item is now at version 3/)).toBeTruthy()
     expect(screen.getByText('Title')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Discard mine/ }))
     fireEvent.click(screen.getByRole('button', { name: /Apply mine on top of v3/ }))

@@ -8,8 +8,10 @@ import {
   useReferenceDocuments,
 } from '../api/hooks'
 import type { ReferenceSource } from '../api/types'
+import { useT } from '../i18n'
 
 function NewDocumentForm({ projectId }: { projectId: string }) {
+  const t = useT()
   const createDoc = useCreateReferenceDocument(projectId)
   const [open, setOpen] = useState(false)
   const [code, setCode] = useState('')
@@ -22,7 +24,7 @@ function NewDocumentForm({ projectId }: { projectId: string }) {
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="text-xs font-medium text-blue-600 hover:text-blue-800">
-        + Add reference document
+        + {t('Add reference document')}
       </button>
     )
   }
@@ -44,28 +46,28 @@ function NewDocumentForm({ projectId }: { projectId: string }) {
         setTitle('')
         setExternalUrl('')
       },
-      onError: (err) => setError(apiErrorMessage(err, 'Could not add this document.')),
+      onError: (err) => setError(apiErrorMessage(err, t('Could not add this document.'))),
     })
   }
 
   return (
     <form onSubmit={submit} className="mt-2 space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
       <div className="grid grid-cols-2 gap-2">
-        <input className="rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder="Code (short id)" value={code} onChange={(e) => setCode(e.target.value)} required />
-        <input className="rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <input className="rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder={t('Code (short id)')} value={code} onChange={(e) => setCode(e.target.value)} required />
+        <input className="rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder={t('Title')} value={title} onChange={(e) => setTitle(e.target.value)} required />
         <select className="rounded-md border border-slate-300 px-2 py-1 text-xs" value={sourceType} onChange={(e) => setSourceType(e.target.value as 'pdf' | 'external_link')}>
-          <option value="pdf">Uploaded PDF</option>
-          <option value="external_link">External link</option>
+          <option value="pdf">{t('Uploaded PDF')}</option>
+          <option value="external_link">{t('External link')}</option>
         </select>
       </div>
       {sourceType === 'external_link' ? (
-        <input className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder="https://…" value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} required />
+        <input className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder={t('https://…')} value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} required />
       ) : (
         <input ref={fileInput} type="file" accept="application/pdf" className="w-full text-xs" required />
       )}
       <div className="flex gap-2">
-        <button type="submit" className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">Add</button>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+        <button type="submit" className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">{t('Add')}</button>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:text-slate-700">{t('Cancel')}</button>
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </form>
@@ -73,6 +75,7 @@ function NewDocumentForm({ projectId }: { projectId: string }) {
 }
 
 function DocumentCard({ source }: { source: ReferenceSource }) {
+  const t = useT()
   const deleteSource = useDeleteReferenceSource()
   const createLocator = useCreateLocator()
   const deleteLocator = useDeleteLocator()
@@ -91,11 +94,11 @@ function DocumentCard({ source }: { source: ReferenceSource }) {
           <span className="font-mono text-xs text-slate-400">{source.code}</span>{' '}
           <span className="text-sm font-medium text-slate-800">{source.title}</span>
         </div>
-        <button onClick={() => deleteSource.mutate(source.id)} className="text-xs text-slate-400 hover:text-red-600">Delete</button>
+        <button onClick={() => deleteSource.mutate(source.id)} className="text-xs text-slate-400 hover:text-red-600">{t('Delete')}</button>
       </div>
       <p className="mb-2 text-xs text-slate-500">
         {source.source_type === 'pdf' ? (
-          <a href={`/api/v1/reference-sources/${source.id}/file`} target="_blank" rel="noopener" className="text-blue-600 hover:underline">View PDF</a>
+          <a href={`/api/v1/reference-sources/${source.id}/file`} target="_blank" rel="noopener" className="text-blue-600 hover:underline">{t('View PDF')}</a>
         ) : (
           <a href={source.external_url ?? '#'} target="_blank" rel="noopener" className="text-blue-600 hover:underline">{source.external_url}</a>
         )}
@@ -109,8 +112,8 @@ function DocumentCard({ source }: { source: ReferenceSource }) {
         ))}
       </ul>
       <form onSubmit={addLocator} className="flex gap-1">
-        <input className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder="Locator label (e.g. Section 3.1)" value={label} onChange={(e) => setLabel(e.target.value)} />
-        <button type="submit" className="rounded-md bg-slate-700 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800">Add</button>
+        <input className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs" placeholder={t('Locator label (e.g. Section 3.1)')} value={label} onChange={(e) => setLabel(e.target.value)} />
+        <button type="submit" className="rounded-md bg-slate-700 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800">{t('Add')}</button>
       </form>
     </div>
   )
@@ -120,25 +123,26 @@ function DocumentCard({ source }: { source: ReferenceSource }) {
  * the owning project's ACL (unlike org-wide standards), so this lives
  * inside project settings rather than a global admin page. */
 export default function ReferenceDocumentsPanel({ projectId }: { projectId: string }) {
+  const t = useT()
   const { data: documents, isLoading } = useReferenceDocuments(projectId)
 
-  if (isLoading) return <div className="p-6 text-sm text-slate-500">Loading…</div>
+  if (isLoading) return <div className="p-6 text-sm text-slate-500">{t('Loading…')}</div>
 
   return (
     <div className="p-6">
       <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-slate-800">Reference Documents</h1>
+        <h1 className="text-lg font-semibold text-slate-800">{t('Reference Documents')}</h1>
         <NewDocumentForm projectId={projectId} />
       </div>
       <p className="mb-4 max-w-2xl text-sm text-slate-500">
-        Per-project (§5.4) — e.g. the analysis a requirement's rationale is drawn from. Cite with{' '}
-        <code className="rounded bg-slate-100 px-1">[[ref:CODE#locator]]</code>, same as a standard.
+        {t("Documents specific to this project — e.g. the analysis a requirement's rationale is drawn from. Cite with")}{' '}
+        <code className="rounded bg-slate-100 px-1">[[ref:CODE#locator]]</code>{t(', same as a standard.')}
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         {(documents ?? []).map((s) => (
           <DocumentCard key={s.id} source={s} />
         ))}
-        {(documents ?? []).length === 0 && <p className="text-sm text-slate-400">No reference documents yet.</p>}
+        {(documents ?? []).length === 0 && <p className="text-sm text-slate-400">{t('No reference documents yet.')}</p>}
       </div>
     </div>
   )

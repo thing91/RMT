@@ -1,4 +1,5 @@
 import type { ItemTypeAttribute } from '../api/types'
+import { useT } from '../i18n'
 
 interface Props {
   attribute: ItemTypeAttribute
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function AttributeField({ attribute, value, onChange }: Props) {
+  const t = useT()
   const inputClass =
     'w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none'
 
@@ -54,7 +56,7 @@ export default function AttributeField({ attribute, value, onChange }: Props) {
           </select>
           {currentIsDeprecated && (
             <p className="mt-1 text-xs text-amber-600">
-              This value is deprecated. Consider migrating it to a current option.
+              {t('This value is deprecated. Consider migrating it to a current option.')}
             </p>
           )}
         </div>

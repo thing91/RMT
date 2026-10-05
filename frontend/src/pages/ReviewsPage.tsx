@@ -5,10 +5,12 @@ import { can, useCreateReview, usePermissions, useReviews } from '../api/collabH
 import { useDocuments, useItemTypes, useOrg, useOrgUsers, useProjectItems } from '../api/hooks'
 import Modal, { btn, input } from '../components/collab/Modal'
 import StatusBadge from '../components/collab/StatusBadge'
+import { useT } from '../i18n'
 
 const REVIEW_STATUS_COLOR = { open: '#2563eb', closed: '#16a34a', cancelled: '#94a3b8' }
 
 export default function ReviewsPage() {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const [status, setStatus] = useState('open')
   const { data: reviews, isLoading } = useReviews(projectId, status ? { status } : {})
@@ -19,22 +21,21 @@ export default function ReviewsPage() {
     <div className="mx-auto max-w-5xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-800">Reviews</h1>
+          <h1 className="text-lg font-semibold text-slate-800">{t('Reviews')}</h1>
           <p className="text-sm text-slate-500">
-            A review covers a set of requirements (pinned to the reviewed version), has required reviewers who vote,
-            and collects comments and change suggestions (RIDs).
+            {t('A review covers a set of requirements (pinned to the reviewed version), has required reviewers who vote, and collects comments and change suggestions.')}
           </p>
         </div>
         {can(perms, 'review.manage') && (
           <button className={btn.primary} onClick={() => setCreating(true)}>
-            + New review
+            + {t('New review')}
           </button>
         )}
       </div>
       <div className="mb-3 flex gap-1 text-xs">
         {[
-          ['open', 'Open'],
-          ['closed', 'Closed'],
+          ['open', t('Open')],
+          ['closed', t('Closed')],
           ['', 'All'],
         ].map(([v, l]) => (
           <button
@@ -50,11 +51,11 @@ export default function ReviewsPage() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-500">
             <tr>
-              <th className="px-3 py-2 font-medium">Review</th>
-              <th className="font-medium">Status</th>
-              <th className="font-medium">Items</th>
-              <th className="font-medium">Votes</th>
-              <th className="font-medium">Created</th>
+              <th className="px-3 py-2 font-medium">{t('Review')}</th>
+              <th className="font-medium">{t('Status')}</th>
+              <th className="font-medium">{t('Items')}</th>
+              <th className="font-medium">{t('Votes')}</th>
+              <th className="font-medium">{t('Created')}</th>
             </tr>
           </thead>
           <tbody>
@@ -81,7 +82,7 @@ export default function ReviewsPage() {
             {!isLoading && (reviews ?? []).length === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-6 text-center text-xs text-slate-400">
-                  No reviews.
+                  {t('No reviews.')}
                 </td>
               </tr>
             )}
@@ -94,6 +95,7 @@ export default function ReviewsPage() {
 }
 
 function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose: () => void }) {
+  const t = useT()
   const navigate = useNavigate()
   const { org } = useOrg()
   const { data: users } = useOrgUsers(org?.id)
@@ -148,7 +150,7 @@ function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose:
       },
       {
         onSuccess: (r) => navigate(`/projects/${projectId}/reviews/${r.id}`),
-        onError: (err) => setError(apiErrorMessage(err, 'Could not create the review.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not create the review.'))),
       },
     )
   }
@@ -156,12 +158,12 @@ function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose:
   return (
     <Modal
       wide
-      title="New review"
+      title={t('New review')}
       onClose={onClose}
       footer={
         <>
           <button className={btn.secondary} onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </button>
           <button className={btn.primary} disabled={!title.trim() || itemIds.size === 0 || create.isPending} onClick={submit}>
             Open review ({itemIds.size} items)
@@ -171,16 +173,16 @@ function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose:
     >
       <div className="space-y-3 text-sm">
         <div className="flex gap-2">
-          <input className={input} placeholder="Title, e.g. PDR — EPS requirements" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <input type="date" className="rounded-md border border-slate-300 px-2 text-sm" value={dueDate} onChange={(e) => setDueDate(e.target.value)} title="Due date" />
+          <input className={input} placeholder={t('Title, e.g. PDR — EPS requirements')} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input type="date" className="rounded-md border border-slate-300 px-2 text-sm" value={dueDate} onChange={(e) => setDueDate(e.target.value)} title={t('Due date')} />
         </div>
-        <textarea className={input} rows={2} placeholder="Scope / instructions (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea className={input} rows={2} placeholder={t('Scope / instructions (optional)')} value={description} onChange={(e) => setDescription(e.target.value)} />
 
         <div>
           <div className="mb-1 flex items-center gap-2 text-xs">
-            <span className="font-medium text-slate-500">Items</span>
+            <span className="font-medium text-slate-500">{t('Items')}</span>
             <select className="rounded border border-slate-300 px-1 py-0.5" value={documentId} onChange={(e) => setDocumentId(e.target.value)}>
-              <option value="">All documents</option>
+              <option value="">{t('All documents')}</option>
               {(documents ?? []).map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
@@ -188,16 +190,16 @@ function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose:
               ))}
             </select>
             <select className="rounded border border-slate-300 px-1 py-0.5" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">Any status</option>
-              <option value="draft">Draft</option>
-              <option value="review">In Review</option>
-              <option value="approved">Approved</option>
+              <option value="">{t('Any status')}</option>
+              <option value="draft">{t('Draft')}</option>
+              <option value="review">{t('In Review')}</option>
+              <option value="approved">{t('Approved')}</option>
             </select>
             <button className={btn.ghost} onClick={() => setItemIds(new Set(candidates.map((c) => c.id)))}>
               Select all ({candidates.length})
             </button>
             <button className={btn.ghost} onClick={() => setItemIds(new Set())}>
-              Clear
+              {t('Clear')}
             </button>
           </div>
           <div className="max-h-48 overflow-auto rounded-md border border-slate-200">
@@ -208,12 +210,12 @@ function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose:
                 <span className="truncate">{i.title}</span>
               </label>
             ))}
-            {candidates.length === 0 && <p className="p-2 text-xs text-slate-400">No matching items.</p>}
+            {candidates.length === 0 && <p className="p-2 text-xs text-slate-400">{t('No matching items.')}</p>}
           </div>
         </div>
 
         <div>
-          <div className="mb-1 text-xs font-medium text-slate-500">Reviewers (tick “required” for mandatory votes)</div>
+          <div className="mb-1 text-xs font-medium text-slate-500">{t('Reviewers (tick “required” for mandatory votes)')}</div>
           <div className="max-h-40 overflow-auto rounded-md border border-slate-200">
             {(users ?? []).map((u) => (
               <div key={u.id} className="flex items-center gap-3 border-b border-slate-100 px-2 py-1 text-xs last:border-0">
@@ -239,7 +241,7 @@ function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose:
                       checked={participants[u.id]}
                       onChange={(e) => setParticipants((prev) => ({ ...prev, [u.id]: e.target.checked }))}
                     />
-                    required
+                    {t('required')}
                   </label>
                 )}
               </div>
@@ -249,16 +251,16 @@ function CreateReviewModal({ projectId, onClose }: { projectId: string; onClose:
 
         <div className="flex flex-wrap gap-4 text-xs text-slate-600">
           <label className="flex items-center gap-1">
-            Closing requires resolving
+            {t('Closing requires resolving')}
             <select className="rounded border border-slate-300 px-1 py-0.5" value={closeRule} onChange={(e) => setCloseRule(e.target.value as 'none' | 'major' | 'all')}>
-              <option value="major">Major suggestions</option>
-              <option value="all">all suggestions</option>
-              <option value="none">nothing</option>
+              <option value="major">{t('Major suggestions')}</option>
+              <option value="all">{t('all suggestions')}</option>
+              <option value="none">{t('nothing')}</option>
             </select>
           </label>
           <label className="flex items-center gap-1">
             <input type="checkbox" checked={requireVotes} onChange={(e) => setRequireVotes(e.target.checked)} />
-            all required reviewers must vote
+            {t('all required reviewers must vote')}
           </label>
         </div>
         {error && <p className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-700">⚠ {error}</p>}

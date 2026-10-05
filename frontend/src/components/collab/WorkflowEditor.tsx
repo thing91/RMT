@@ -5,6 +5,7 @@ import type { WorkflowDefinition, WorkflowState, WorkflowTransition } from '../.
 import { btn } from './Modal'
 import StatusBadge from './StatusBadge'
 import WorkflowVisualEditor from './WorkflowVisualEditor'
+import { useT } from '../../i18n'
 
 /** Shows one workflow (states + transitions) and lets an admin switch to a
  * template or edit the definition as JSON. Server-side validation (unknown
@@ -20,6 +21,7 @@ export default function WorkflowEditor({
   onSave: (spec: WorkflowSpecInput) => Promise<unknown>
   extraActions?: React.ReactNode
 }) {
+  const t = useT()
   const { data: templates } = useWorkflowTemplates()
   const { data: catalog } = useWorkflowCatalog()
   const [mode, setMode] = useState<'view' | 'visual' | 'json'>('view')
@@ -53,7 +55,7 @@ export default function WorkflowEditor({
       setMode('view')
     } catch (err) {
       const d = apiErrorDetail(err)
-      setErrors([d?.message ?? apiErrorMessage(err, 'Could not save.'), ...(d?.reasons ?? [])])
+      setErrors([d?.message ?? apiErrorMessage(err, t('Could not save.')), ...(d?.reasons ?? [])])
     }
   }
 
@@ -61,7 +63,7 @@ export default function WorkflowEditor({
     try {
       save(JSON.parse(json) as WorkflowSpecInput)
     } catch {
-      setErrors(['That is not valid JSON.'])
+      setErrors([t('That is not valid JSON.')])
     }
   }
 
@@ -74,7 +76,7 @@ export default function WorkflowEditor({
             value={template}
             onChange={(e) => setTemplate(e.target.value)}
           >
-            <option value="">Apply a template…</option>
+            <option value="">{t('Apply a template…')}</option>
             {(templates ?? []).map((t) => (
               <option key={t.key} value={t.key}>
                 {t.name}
@@ -82,26 +84,26 @@ export default function WorkflowEditor({
             ))}
           </select>
           <button className={btn.secondary} disabled={!template} onClick={() => save({ template })}>
-            Apply
+            {t('Apply')}
           </button>
           <span className="text-slate-300">|</span>
           {mode !== 'view' && (
             <button className={btn.ghost} onClick={() => setMode('view')}>
-              Back to overview
+              {t('Back to overview')}
             </button>
           )}
           {mode !== 'visual' && (
             <button className={btn.ghost} onClick={() => setMode('visual')} disabled={!definition}>
-              Edit…
+              {t('Edit…')}
             </button>
           )}
           {mode !== 'json' && (
             <button className={btn.ghost} onClick={() => setMode('json')}>
-              Edit as JSON…
+              {t('Edit as JSON…')}
             </button>
           )}
           {extraActions}
-          {saved && <span className="text-green-700">Saved.</span>}
+          {saved && <span className="text-green-700">{t('Saved.')}</span>}
         </div>
       )}
       {errors.length > 0 && (
@@ -137,7 +139,7 @@ export default function WorkflowEditor({
             </p>
           )}
           <button className={btn.primary} onClick={saveJson}>
-            Save workflow
+            {t('Save workflow')}
           </button>
         </div>
       ) : (
@@ -155,6 +157,8 @@ function ruleText(r: { type: string; [k: string]: unknown }): string {
 }
 
 export function WorkflowOverview({ states, transitions }: { states: WorkflowState[]; transitions: WorkflowTransition[] }) {
+  const t = useT()
+  const tx = t
   const label = (k: string) => states.find((s) => s.key === k)?.label ?? k
   return (
     <div className="space-y-3">
@@ -173,11 +177,11 @@ export function WorkflowOverview({ states, transitions }: { states: WorkflowStat
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-slate-200 text-left text-slate-400">
-            <th className="py-1 font-medium">Transition</th>
-            <th className="font-medium">From → To</th>
-            <th className="font-medium">Who</th>
-            <th className="font-medium">Conditions</th>
-            <th className="font-medium">Actions</th>
+            <th className="py-1 font-medium">{t('Transition')}</th>
+            <th className="font-medium">{t('From → To')}</th>
+            <th className="font-medium">{t('Who')}</th>
+            <th className="font-medium">{t('Conditions')}</th>
+            <th className="font-medium">{t('Actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -185,7 +189,7 @@ export function WorkflowOverview({ states, transitions }: { states: WorkflowStat
             <tr key={t.key} className="border-b border-slate-100 align-top">
               <td className="py-1 font-medium text-slate-700">
                 {t.label}
-                {t.requires_comment && <span className="ml-1 text-slate-400" title="Comment required">💬</span>}
+                {t.requires_comment && <span className="ml-1 text-slate-400" title={tx('Comment required')}>💬</span>}
               </td>
               <td className="text-slate-600">
                 {t.from.map(label).join(', ')} → <b>{label(t.to)}</b>

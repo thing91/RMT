@@ -1,4 +1,5 @@
 import type { GlossaryTerm, Parameter, ReferenceSource } from '../api/types'
+import { useT } from '../i18n'
 
 const COMBINED_PATTERN =
   /\[\[(?!ref:)([A-Za-z0-9_.-]+)\]\]|\[\[ref:([A-Za-z0-9_.-]+)#([^\]]+)\]\]|\{\{param:([A-Za-z0-9_]+)\}\}/g
@@ -25,6 +26,7 @@ export default function DescriptionPreview({
   referenceSources: ReferenceSource[]
   parameters: Parameter[]
 }) {
+  const t = useT()
   const byAbbr = new Map(glossaryTerms.map((t) => [t.abbreviation.toLowerCase(), t]))
   const byCode = new Map(referenceSources.map((s) => [s.code.toLowerCase(), s]))
   const byKey = new Map(parameters.map((p) => [p.key, p]))
@@ -54,7 +56,7 @@ export default function DescriptionPreview({
           return (
             <span
               key={i}
-              title={part.term ? part.term.definition : 'Undefined glossary reference'}
+              title={part.term ? part.term.definition : t('Undefined glossary reference')}
               className={
                 part.term
                   ? 'cursor-help text-purple-700 underline decoration-dotted'
@@ -73,8 +75,8 @@ export default function DescriptionPreview({
               key={i}
               title={
                 part.source
-                  ? `${part.source.title}${part.source.version ? ` ${part.source.version}` : ''} — ${part.label}${stale ? ' (superseded — newer version exists)' : ''}`
-                  : 'Undefined reference'
+                  ? `${part.source.title}${part.source.version ? ` ${part.source.version}` : ''} — ${part.label}${stale ? ` (${t('superseded — newer version exists')})` : ''}`
+                  : t('Undefined reference')
               }
               className={
                 part.source

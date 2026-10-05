@@ -4,6 +4,7 @@ import { useConvertComment, useCreateSuggestion, useReviews } from '../../api/co
 import type { Item, ItemComment, ItemType, LinkType } from '../../api/types'
 import AttributeField from '../AttributeField'
 import Modal, { btn, input } from './Modal'
+import { useT } from '../../i18n'
 
 interface Props {
   item: Item
@@ -20,18 +21,19 @@ type Target = { value: string; label: string }
 /** Formal change suggestion on one field of a requirement. Needs no edit
  * rights and no edit lock — any reader can suggest, in parallel. */
 export default function SuggestionForm({ item, itemType, linkTypes, allItems, projectId, fromComment, onClose }: Props) {
+  const t = useT()
   const create = useCreateSuggestion(item.id)
   const convert = useConvertComment()
   const { data: reviews } = useReviews(projectId, { status: 'open', item_id: item.id })
 
   const targets: Target[] = useMemo(
     () => [
-      { value: 'title', label: 'Title' },
-      { value: 'description_md', label: 'Description' },
+      { value: 'title', label: t('Title') },
+      { value: 'description_md', label: t('Description') },
       ...itemType.attributes
         .filter((a) => a.key !== 'status' && !a.deprecated)
         .map((a) => ({ value: `attributes.${a.key}`, label: a.label })),
-      { value: 'links.add', label: 'Add a link' },
+      { value: 'links.add', label: t('Add a link') },
     ],
     [itemType],
   )
@@ -74,7 +76,7 @@ export default function SuggestionForm({ item, itemType, linkTypes, allItems, pr
       severity,
       review_id: reviewId || null,
     }
-    const onError = (err: unknown) => setError(apiErrorMessage(err, 'Could not create the suggestion.'))
+    const onError = (err: unknown) => setError(apiErrorMessage(err, t('Could not create the suggestion.')))
     if (fromComment) convert.mutate({ commentId: fromComment.id, payload }, { onSuccess: onClose, onError })
     else create.mutate(payload, { onSuccess: onClose, onError })
   }
@@ -87,21 +89,21 @@ export default function SuggestionForm({ item, itemType, linkTypes, allItems, pr
       footer={
         <>
           <button className={btn.secondary} onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             className={btn.primary}
             onClick={submit}
             disabled={!rationale.trim() || create.isPending || convert.isPending}
           >
-            Submit suggestion
+            {t('Submit suggestion')}
           </button>
         </>
       }
     >
       <div className="space-y-3 text-sm">
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">What should change</span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t('What should change')}</span>
           <select className={input} value={target} onChange={(e) => changeTarget(e.target.value)}>
             {targets.map((t) => (
               <option key={t.value} value={t.value}>
@@ -126,7 +128,7 @@ export default function SuggestionForm({ item, itemType, linkTypes, allItems, pr
         {target === 'links.add' && (
           <div className="flex flex-wrap gap-2">
             <select className="rounded-md border border-slate-300 px-2 py-1 text-xs" value={linkTypeId} onChange={(e) => setLinkTypeId(e.target.value)}>
-              <option value="">Link type…</option>
+              <option value="">{t('Link type…')}</option>
               {linkTypes.map((lt) => (
                 <option key={lt.id} value={lt.id}>
                   {lt.name}
@@ -134,11 +136,11 @@ export default function SuggestionForm({ item, itemType, linkTypes, allItems, pr
               ))}
             </select>
             <select className="rounded-md border border-slate-300 px-2 py-1 text-xs" value={direction} onChange={(e) => setDirection(e.target.value as 'out' | 'in')}>
-              <option value="out">this →</option>
-              <option value="in">→ this</option>
+              <option value="out">{t('this →')}</option>
+              <option value="in">{t('→ this')}</option>
             </select>
             <select className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs" value={otherId} onChange={(e) => setOtherId(e.target.value)}>
-              <option value="">Item…</option>
+              <option value="">{t('Item…')}</option>
               {allItems
                 .filter((i) => i.id !== item.id && i.key)
                 .map((i) => (
@@ -151,34 +153,34 @@ export default function SuggestionForm({ item, itemType, linkTypes, allItems, pr
         )}
 
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">Justification (required)</span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t('Justification (required)')}</span>
           <textarea rows={3} className={input} value={rationale} onChange={(e) => setRationale(e.target.value)} />
         </label>
 
         <div className="flex flex-wrap gap-4 text-xs">
           <fieldset className="flex items-center gap-2">
-            <span className="font-medium text-slate-500">Type</span>
+            <span className="font-medium text-slate-500">{t('Type')}</span>
             {(['technical', 'editorial'] as const).map((k) => (
               <label key={k} className="flex items-center gap-1">
                 <input type="radio" checked={kind === k} onChange={() => setKind(k)} />
-                {k === 'technical' ? 'Technical' : 'Editorial'}
+                {k === 'technical' ? t('Technical') : t('Editorial')}
               </label>
             ))}
           </fieldset>
           <fieldset className="flex items-center gap-2">
-            <span className="font-medium text-slate-500">Severity</span>
+            <span className="font-medium text-slate-500">{t('Severity')}</span>
             {(['minor', 'major'] as const).map((k) => (
               <label key={k} className="flex items-center gap-1">
                 <input type="radio" checked={severity === k} onChange={() => setSeverity(k)} />
-                {k === 'major' ? 'Major' : 'Minor'}
+                {k === 'major' ? t('Major') : t('Minor')}
               </label>
             ))}
           </fieldset>
           {(reviews ?? []).length > 0 && (
             <label className="flex items-center gap-2">
-              <span className="font-medium text-slate-500">Raised in review</span>
+              <span className="font-medium text-slate-500">{t('Raised in review')}</span>
               <select className="rounded-md border border-slate-300 px-2 py-0.5" value={reviewId} onChange={(e) => setReviewId(e.target.value)}>
-                <option value="">— none —</option>
+                <option value="">{t('— none —')}</option>
                 {reviews!.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.key} {r.title}

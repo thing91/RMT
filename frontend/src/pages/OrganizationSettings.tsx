@@ -4,6 +4,7 @@ import { api, apiErrorMessage } from '../api/client'
 import { can, usePermissions } from '../api/collabHooks'
 import { useOrg } from '../api/hooks'
 import { btn } from '../components/collab/Modal'
+import { useT } from '../i18n'
 
 interface OrgSettings {
   values: Record<string, number | boolean>
@@ -39,6 +40,7 @@ const ORG_PERMS = ['roadmap.manage', 'library.release', 'workflow.configure_org'
 const ROLES = ['viewer', 'reviewer', 'editor', 'admin']
 
 export default function OrganizationSettings() {
+  const t = useT()
   const { org } = useOrg()
   const { data: perms } = usePermissions()
   const isAdmin = can(perms, 'org.admin')
@@ -72,7 +74,7 @@ export default function OrganizationSettings() {
     if (settings) setDraft(settings.values)
   }, [settings])
 
-  if (!org || !settings || !roles) return <div className="p-6 text-slate-500">Loading…</div>
+  if (!org || !settings || !roles) return <div className="p-6 text-slate-500">{t('Loading…')}</div>
 
   function toggle(role: string, permission: string) {
     const row = roles!.find((r) => r.role === role)!
@@ -82,7 +84,7 @@ export default function OrganizationSettings() {
     const next = !has
     setPermission.mutate(
       { role, permission, granted: next === isDefault ? null : next },
-      { onError: (e) => setMessage(apiErrorMessage(e, 'Could not change the permission.')) },
+      { onError: (e) => setMessage(apiErrorMessage(e, t('Could not change the permission.'))) },
     )
   }
 
@@ -120,24 +122,24 @@ export default function OrganizationSettings() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div>
-        <h1 className="text-lg font-semibold text-slate-800">Organization settings — {org.name}</h1>
+        <h1 className="text-lg font-semibold text-slate-800">{t('Organization settings — {name}', { name: org.name })}</h1>
         {!isAdmin && (
           <p className="mt-1 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-500">
-            Read-only — only an organization admin can change these.
+            {t('Read-only — only an organization admin can change these.')}
           </p>
         )}
       </div>
 
       <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Editing &amp; locks</h2>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Editing & locks')}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          {numberField('edit_lock_timeout_minutes', 'Edit lock expires after inactivity', 'minutes', 1, 240)}
-          {numberField('structure_lock_implicit_seconds', 'Structure lease after moving items', 'seconds', 15, 1800)}
+          {numberField('edit_lock_timeout_minutes', t('Edit lock expires after inactivity'), 'minutes', 1, 240)}
+          {numberField('structure_lock_implicit_seconds', t('Structure lease after moving items'), 'seconds', 15, 1800)}
         </div>
-        <h2 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">Separation of duties</h2>
+        <h2 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Separation of duties')}</h2>
         <div className="space-y-1.5">
-          {boolField('suggestion_self_resolve', 'Authors may resolve their own change suggestions')}
-          {boolField('applicability_self_approve', 'The person proposing "Not applicable" may also approve it')}
+          {boolField('suggestion_self_resolve', t('Authors may resolve their own change suggestions'))}
+          {boolField('applicability_self_approve', t('The person proposing "Not applicable" may also approve it'))}
         </div>
         {isAdmin && (
           <div className="mt-4 flex items-center gap-3">
@@ -145,12 +147,12 @@ export default function OrganizationSettings() {
               className={btn.primary}
               onClick={() =>
                 saveSettings.mutate(draft, {
-                  onSuccess: () => setMessage('Saved.'),
-                  onError: (e) => setMessage(apiErrorMessage(e, 'Could not save.')),
+                  onSuccess: () => setMessage(t('Saved.')),
+                  onError: (e) => setMessage(apiErrorMessage(e, t('Could not save.'))),
                 })
               }
             >
-              Save settings
+              {t('Save settings')}
             </button>
             {message && <span className="text-xs text-slate-500">{message}</span>}
           </div>
@@ -158,16 +160,15 @@ export default function OrganizationSettings() {
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Role permissions</h2>
+        <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Role permissions')}</h2>
         <p className="mb-3 text-xs text-slate-500">
-          What each project role may do in every project of this organization. Bold = changed from the default; click a
-          cell to grant or revoke. Org admins always have everything.
+          {t('What each project role may do in every project of this organization. Bold = changed from the default; click a cell to grant or revoke. Org admins always have everything.')}
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left text-slate-500">
-                <th className="py-1.5 pr-3 font-medium">Permission</th>
+                <th className="py-1.5 pr-3 font-medium">{t('Permission')}</th>
                 {ROLES.map((r) => (
                   <th key={r} className="px-2 text-center font-medium capitalize">
                     {r}
@@ -179,7 +180,7 @@ export default function OrganizationSettings() {
               {PROJECT_PERMS.map((p) => (
                 <tr key={p} className="border-t border-slate-100">
                   <td className="py-1.5 pr-3">
-                    <span className="text-slate-700">{PERMISSION_INFO[p]}</span>
+                    <span className="text-slate-700">{t(PERMISSION_INFO[p])}</span>
                     <span className="ml-1 font-mono text-[10px] text-slate-400">{p}</span>
                   </td>
                   {ROLES.map((role) => {
@@ -206,7 +207,7 @@ export default function OrganizationSettings() {
             </tbody>
           </table>
         </div>
-        <h3 className="mb-1 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">Every member of the organization</h3>
+        <h3 className="mb-1 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Every member of the organization')}</h3>
         <div className="space-y-1">
           {ORG_PERMS.map((p) => {
             const row = roles.find((r) => r.role === 'org_member')
@@ -214,7 +215,7 @@ export default function OrganizationSettings() {
             return (
               <label key={p} className="flex items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" disabled={!isAdmin} checked={has} onChange={() => toggle('org_member', p)} />
-                {PERMISSION_INFO[p]} <span className="font-mono text-[10px] text-slate-400">{p}</span>
+                {t(PERMISSION_INFO[p])} <span className="font-mono text-[10px] text-slate-400">{p}</span>
               </label>
             )
           })}

@@ -29,6 +29,8 @@ class EnumOption(BaseModel):
     # status is set to that value via a normal edit.
     requires_approval: bool = False
     notify_reviewers: bool = False
+    # Workflow state color, synced from the workflow onto the status options.
+    color: str | None = None
 
 
 class ItemTypeAttributeBase(BaseModel):

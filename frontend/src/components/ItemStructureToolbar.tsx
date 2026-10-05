@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useCreateItem, useUpdateItem } from '../api/hooks'
 import type { Item, ItemType } from '../api/types'
 import { useItemClipboard } from '../structure/ItemClipboardContext'
+import { useT } from '../i18n'
 
 /** Is `candidateId` the same as, or a descendant of, `ancestorId`? Used to
  * stop a paste (or indent) from nesting an item inside its own subtree. */
@@ -32,6 +33,7 @@ interface Props {
  * ItemClipboardContext (provided above both) so it survives switching
  * between them. */
 export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes, extra }: Props) {
+  const t = useT()
   const updateItem = useUpdateItem()
   const { clipboard, setClipboard } = useItemClipboard()
   // Only meaningfully used once a paste actually fires (guarded by
@@ -196,14 +198,14 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
     }`
 
   const pasteTitle = crossDocumentCutBlocked
-    ? "Cut items can't move to a different document — use Copy instead"
+    ? t("Cut items can't move to a different document — use Copy instead")
     : selectedType?.behavior === 'structural'
       ? clipboard?.mode === 'copy'
-        ? 'Paste — duplicate the copied item inside this section'
-        : 'Paste — move the cut item inside this section'
+        ? t('Paste — duplicate the copied item inside this section')
+        : t('Paste — move the cut item inside this section')
       : clipboard?.mode === 'copy'
-        ? 'Paste — duplicate the copied item right after the selected one'
-        : 'Paste — insert the cut item right after the selected one'
+        ? t('Paste — duplicate the copied item right after the selected one')
+        : t('Paste — insert the cut item right after the selected one')
 
   return (
     <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1.5">
@@ -216,10 +218,10 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
       <span className="mr-1 truncate text-xs text-slate-400">
         {selectedItem
           ? `Selected: ${selectedItem.key ?? selectedItem.title}`
-          : 'Select an item below to reorder, nest, or move it'}
+          : t('Select an item below to reorder, nest, or move it')}
       </span>
       <button
-        title="Move up"
+        title={t('Move up')}
         disabled={!canMoveUp}
         onClick={() => moveBy(-1)}
         className={btnClass(canMoveUp)}
@@ -227,7 +229,7 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
         ↑
       </button>
       <button
-        title="Move down"
+        title={t('Move down')}
         disabled={!canMoveDown}
         onClick={() => moveBy(1)}
         className={btnClass(canMoveDown)}
@@ -235,7 +237,7 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
         ↓
       </button>
       <button
-        title="Outdent — move up one nesting level"
+        title={t('Outdent — move up one nesting level')}
         disabled={!canOutdent}
         onClick={outdent}
         className={btnClass(canOutdent)}
@@ -245,10 +247,10 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
       <button
         title={
           canIndent
-            ? 'Indent — nest under the previous item'
+            ? t('Indent — nest under the previous item')
             : prevSibling
-              ? 'Can only nest under a Section'
-              : 'No previous item to nest under'
+              ? t('Can only nest under a Section')
+              : t('No previous item to nest under')
         }
         disabled={!canIndent}
         onClick={indent}
@@ -258,7 +260,7 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
       </button>
       <span className="mx-1 h-5 w-px bg-slate-200" />
       <button
-        title="Copy — pick a new position, then Paste to duplicate it there"
+        title={t('Copy — pick a new position, then Paste to duplicate it there')}
         disabled={!selectedItem}
         onClick={() => toggleClipboard('copy')}
         className={
@@ -270,7 +272,7 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
         ⧉
       </button>
       <button
-        title="Cut — pick a new position, then Paste to move it there"
+        title={t('Cut — pick a new position, then Paste to move it there')}
         disabled={!selectedItem}
         onClick={() => toggleClipboard('cut')}
         className={
@@ -286,8 +288,8 @@ export default function ItemStructureToolbar({ selectedItem, allItems, itemTypes
       </button>
       {clipboardItem && clipboard && (
         <span className={clipboard.mode === 'copy' ? 'text-xs text-blue-600' : 'text-xs text-amber-600'}>
-          {clipboard.mode === 'copy' ? 'Copied' : 'Cut'}: {clipboardItem.key ?? clipboardItem.title} — select
-          where it should go, then press Paste
+          {clipboard.mode === 'copy' ? t('Copied') : t('Cut')}: {clipboardItem.key ?? clipboardItem.title} —{' '}
+          {t('select where it should go, then press Paste')}
         </span>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { useT } from '../../i18n'
 import { useParams } from 'react-router-dom'
 import { useProjectLocks } from '../../api/liveEvents'
 import type { EditLock } from '../../api/types'
@@ -21,15 +22,21 @@ export function initials(name: string): string {
   return ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
 }
 
-export function lockTitle(lock: EditLock, isMe: boolean, label?: string): string {
-  const who = isMe ? 'You' : lock.user_name
+export function lockTitle(
+  lock: EditLock,
+  isMe: boolean,
+  label?: string,
+  t: (text: string, vars?: Record<string, string | number>) => string = (x, v) =>
+    v ? x.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : x,
+): string {
+  const who = isMe ? t('You') : lock.user_name
   const what =
     lock.scope === 'structure'
       ? lock.implicit
-        ? 'moving items in this document'
-        : 'reorganizing this document (structure locked)'
-      : `editing ${label ?? 'this item'}`
-  return `${who} — ${what} · since ${sinceText(lock.acquired_at)}`
+        ? t('moving items in this document')
+        : t('reorganizing this document (structure locked)')
+      : t('editing {what}', { what: label ?? t('this item') })
+  return `${who} — ${what} · ${t('since {when}', { when: sinceText(lock.acquired_at) })}`
 }
 
 /** A round avatar with initials. `ring` marks "this is locked" (a dashed
@@ -43,6 +50,7 @@ export default function PresenceAvatar({
   size?: number
   label?: string
 }) {
+  const t = useT()
   const { user } = useAuth()
   const isMe = user?.id === lock.user_id
   const color = userColor(lock.user_id)
@@ -57,8 +65,8 @@ export default function PresenceAvatar({
         backgroundColor: color,
         boxShadow: `0 0 0 2px #fff, 0 0 0 ${structure ? 3 : 4}px ${color}${structure ? '80' : ''}`,
       }}
-      title={lockTitle(lock, isMe, label)}
-      aria-label={lockTitle(lock, isMe, label)}
+      title={lockTitle(lock, isMe, label, t)}
+      aria-label={lockTitle(lock, isMe, label, t)}
       role="img"
     >
       {initials(lock.user_name)}

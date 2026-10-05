@@ -9,8 +9,10 @@ import {
   useUpdateParameter,
 } from '../api/hooks'
 import type { Parameter } from '../api/types'
+import { useT } from '../i18n'
 
 function NewParameterForm({ projectId }: { projectId: string }) {
+  const t = useT()
   const createParameter = useCreateParameter(projectId)
   const [open, setOpen] = useState(false)
   const [key, setKey] = useState('')
@@ -25,7 +27,7 @@ function NewParameterForm({ projectId }: { projectId: string }) {
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-        + Add parameter
+        + {t('Add parameter')}
       </button>
     )
   }
@@ -52,7 +54,7 @@ function NewParameterForm({ projectId }: { projectId: string }) {
           setFormula('')
           setUnit('')
         },
-        onError: (err) => setError(apiErrorMessage(err, 'Could not create this parameter.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not create this parameter.'))),
       },
     )
   }
@@ -60,28 +62,28 @@ function NewParameterForm({ projectId }: { projectId: string }) {
   return (
     <form onSubmit={submit} className="mb-6 space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-4">
       <div className="grid grid-cols-2 gap-2">
-        <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="KEY (e.g. BRAKE_TORQUE_MAX)" value={key} onChange={(e) => setKey(e.target.value)} required />
-        <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder={t('KEY (e.g. BRAKE_TORQUE_MAX)')} value={key} onChange={(e) => setKey(e.target.value)} required />
+        <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder={t('Name')} value={name} onChange={(e) => setName(e.target.value)} required />
         <select className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" value={dataType} onChange={(e) => setDataType(e.target.value as 'constant' | 'derived')}>
-          <option value="constant">Constant</option>
-          <option value="derived">Derived (formula)</option>
+          <option value="constant">{t('Constant')}</option>
+          <option value="derived">{t('Derived (formula)')}</option>
         </select>
         <select className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" value={source} onChange={(e) => setSource(e.target.value)}>
-          <option value="measured">Measured</option>
-          <option value="estimated">Estimated</option>
-          <option value="derived">Derived</option>
-          <option value="assumed">Assumed</option>
+          <option value="measured">{t('Measured')}</option>
+          <option value="estimated">{t('Estimated')}</option>
+          <option value="derived">{t('Derived')}</option>
+          <option value="assumed">{t('Assumed')}</option>
         </select>
         {dataType === 'constant' ? (
-          <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Value" value={value} onChange={(e) => setValue(e.target.value)} />
+          <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder={t('Value')} value={value} onChange={(e) => setValue(e.target.value)} />
         ) : (
-          <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Formula (e.g. MASS_VEHICLE * DECEL_TARGET)" value={formula} onChange={(e) => setFormula(e.target.value)} />
+          <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder={t('Formula (e.g. MASS_VEHICLE * DECEL_TARGET)')} value={formula} onChange={(e) => setFormula(e.target.value)} />
         )}
-        <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Unit (e.g. Nm)" value={unit} onChange={(e) => setUnit(e.target.value)} />
+        <input className="rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder={t('Unit (e.g. Nm)')} value={unit} onChange={(e) => setUnit(e.target.value)} />
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">Create</button>
-        <button type="button" onClick={() => setOpen(false)} className="text-sm text-slate-500 hover:text-slate-700">Cancel</button>
+        <button type="submit" className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">{t('Create')}</button>
+        <button type="button" onClick={() => setOpen(false)} className="text-sm text-slate-500 hover:text-slate-700">{t('Cancel')}</button>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </form>
@@ -89,8 +91,9 @@ function NewParameterForm({ projectId }: { projectId: string }) {
 }
 
 function UsagesList({ parameterId }: { parameterId: string }) {
+  const t = useT()
   const { data: usages } = useParameterUsages(parameterId)
-  if (!usages || usages.length === 0) return <p className="text-xs text-slate-400">Not referenced by any item yet.</p>
+  if (!usages || usages.length === 0) return <p className="text-xs text-slate-400">{t('Not referenced by any item yet.')}</p>
   return (
     <ul className="space-y-0.5">
       {usages.map((u) => (
@@ -103,6 +106,7 @@ function UsagesList({ parameterId }: { parameterId: string }) {
 }
 
 function ParameterRow({ param }: { param: Parameter }) {
+  const t = useT()
   const updateParameter = useUpdateParameter()
   const deleteParameter = useDeleteParameter()
   const [editing, setEditing] = useState(false)
@@ -120,7 +124,7 @@ function ParameterRow({ param }: { param: Parameter }) {
       },
       {
         onSuccess: () => setEditing(false),
-        onError: (err) => setError(apiErrorMessage(err, 'Could not save.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not save.'))),
       },
     )
   }
@@ -155,13 +159,13 @@ function ParameterRow({ param }: { param: Parameter }) {
       <td className="px-3 py-2 text-right text-xs">
         {editing ? (
           <>
-            <button onClick={save} className="mr-2 font-medium text-blue-600 hover:text-blue-800">Save</button>
-            <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-slate-700">Cancel</button>
+            <button onClick={save} className="mr-2 font-medium text-blue-600 hover:text-blue-800">{t('Save')}</button>
+            <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-slate-700">{t('Cancel')}</button>
           </>
         ) : (
           <>
-            <button onClick={() => setEditing(true)} className="mr-2 text-slate-400 hover:text-slate-700">Edit</button>
-            <button onClick={() => deleteParameter.mutate(param.id)} className="text-slate-400 hover:text-red-600">Delete</button>
+            <button onClick={() => setEditing(true)} className="mr-2 text-slate-400 hover:text-slate-700">{t('Edit')}</button>
+            <button onClick={() => deleteParameter.mutate(param.id)} className="text-slate-400 hover:text-red-600">{t('Delete')}</button>
           </>
         )}
       </td>
@@ -170,33 +174,34 @@ function ParameterRow({ param }: { param: Parameter }) {
 }
 
 export default function ParametersAdmin() {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const { data: params, isLoading } = useParameters(projectId)
 
-  if (isLoading || !projectId) return <div className="p-6 text-slate-500">Loading parameters…</div>
+  if (isLoading || !projectId) return <div className="p-6 text-slate-500">{t('Loading parameters…')}</div>
 
   return (
     <div className="p-6">
       <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-slate-800">Parameters</h1>
+        <h1 className="text-lg font-semibold text-slate-800">{t('Parameters')}</h1>
         <NewParameterForm projectId={projectId} />
       </div>
       <p className="mb-4 max-w-2xl text-sm text-slate-500">
-        Numeric variables (§5.3, Valispace-style) — reference one from any item's description with{' '}
-        <code className="rounded bg-slate-100 px-1">{'{{param:KEY}}'}</code>. A <code>derived</code>{' '}
-        parameter's formula can reference other parameters' keys (+ - * / only, no arbitrary code).
+        {t("Numeric values used in requirements — reference one from any requirement's description with")}{' '}
+        <code className="rounded bg-slate-100 px-1">{'{{param:KEY}}'}</code>.{' '}
+        {t("A derived parameter's formula can use other parameters' keys (+ - * / only).")}
       </p>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
-              <th className="px-3 py-2">Key</th>
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Type</th>
-              <th className="px-3 py-2">Value</th>
-              <th className="px-3 py-2">Source</th>
-              <th className="px-3 py-2">Traceability</th>
+              <th className="px-3 py-2">{t('Key')}</th>
+              <th className="px-3 py-2">{t('Name')}</th>
+              <th className="px-3 py-2">{t('Type')}</th>
+              <th className="px-3 py-2">{t('Value')}</th>
+              <th className="px-3 py-2">{t('Source')}</th>
+              <th className="px-3 py-2">{t('Traceability')}</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
@@ -206,7 +211,7 @@ export default function ParametersAdmin() {
             ))}
             {(params ?? []).length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-400">No parameters yet.</td>
+                <td colSpan={7} className="px-3 py-6 text-center text-slate-400">{t('No parameters yet.')}</td>
               </tr>
             )}
           </tbody>

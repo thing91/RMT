@@ -13,6 +13,7 @@ import {
 import type { ItemComment, OrgUser } from '../api/types'
 import { useSuggestionComments } from '../api/collabHooks'
 import MentionTextarea from './MentionTextarea'
+import { useT } from '../i18n'
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString()
@@ -62,6 +63,7 @@ function CommentForm({
   submitLabel: string
   users: OrgUser[]
 }) {
+  const t = useT()
   const [body, setBody] = useState('')
 
   function submit(e: FormEvent) {
@@ -91,7 +93,7 @@ function CommentForm({
         </button>
         {onCancel && (
           <button type="button" onClick={onCancel} className="text-xs text-slate-400 hover:text-slate-700">
-            Cancel
+            {t('Cancel')}
           </button>
         )}
       </div>
@@ -112,6 +114,7 @@ function CommentRow({
   onReply?: () => void
   users: OrgUser[]
 }) {
+  const t = useT()
   const updateComment = useUpdateComment()
   const deleteComment = useDeleteComment()
   const [editing, setEditing] = useState(false)
@@ -126,7 +129,7 @@ function CommentRow({
       { id: comment.id, body: draft.trim() },
       {
         onSuccess: () => setEditing(false),
-        onError: (err) => setError(apiErrorMessage(err, 'Could not save this edit.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not save this edit.'))),
       },
     )
   }
@@ -152,7 +155,7 @@ function CommentRow({
               onClick={saveEdit}
               className="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
             >
-              Save
+              {t('Save')}
             </button>
             <button
               onClick={() => {
@@ -162,7 +165,7 @@ function CommentRow({
               }}
               className="text-xs text-slate-400 hover:text-slate-700"
             >
-              Cancel
+              {t('Cancel')}
             </button>
           </div>
           {error && <p className="text-xs text-red-600">⚠ {error}</p>}
@@ -176,16 +179,16 @@ function CommentRow({
         <div className="mt-1 flex gap-3 text-xs text-slate-400">
           {onReply && (
             <button onClick={onReply} className="hover:text-blue-600">
-              Reply
+              {t('Reply')}
             </button>
           )}
           {isOwn && (
             <button onClick={() => setEditing(true)} className="hover:text-slate-700">
-              Edit
+              {t('Edit')}
             </button>
           )}
           <button onClick={() => deleteComment.mutate(comment.id)} className="hover:text-red-600">
-            Delete
+            {t('Delete')}
           </button>
         </div>
       )}
@@ -204,6 +207,7 @@ function Thread({
   users: OrgUser[]
   onConvert?: (comment: ItemComment) => void
 }) {
+  const t = useT()
   const createComment = useCreateComment(thread.item_id)
   const resolveComment = useResolveComment()
   const reopenComment = useReopenComment()
@@ -221,7 +225,7 @@ function Thread({
     setActionError(null)
     const mutation = thread.resolved ? reopenComment : resolveComment
     mutation.mutate(thread.id, {
-      onError: (err) => setActionError(apiErrorMessage(err, 'Could not update this thread.')),
+      onError: (err) => setActionError(apiErrorMessage(err, t('Could not update this thread.'))),
     })
   }
 
@@ -259,8 +263,8 @@ function Thread({
         <div className="ml-6 mt-2 border-l-2 border-slate-100 pl-3">
           <CommentForm
             autoFocus
-            placeholder="Write a reply…"
-            submitLabel="Reply"
+            placeholder={t('Write a reply…')}
+            submitLabel={t('Reply')}
             onSubmit={submitReply}
             onCancel={() => setReplying(false)}
             users={users}
@@ -270,15 +274,15 @@ function Thread({
 
       <div className="mt-2 flex items-center gap-2">
         <button onClick={toggleResolve} className="text-xs font-medium text-slate-500 hover:text-slate-800">
-          {thread.resolved ? 'Reopen' : '✓ Mark resolved'}
+          {thread.resolved ? t('Reopen') : '✓ Mark resolved'}
         </button>
         {onConvert && currentUserId && (
           <button
             onClick={() => onConvert(thread)}
-            title="Turn this discussion into a formal change suggestion that must be resolved"
+            title={t('Turn this discussion into a formal change suggestion that must be resolved')}
             className="text-xs font-medium text-slate-500 hover:text-blue-700"
           >
-            → Make it a suggestion
+            → {t('Make it a suggestion')}
           </button>
         )}
         {actionError && <span className="text-xs text-red-600">⚠ {actionError}</span>}
@@ -312,6 +316,7 @@ export default function CommentsSection({
   onConvert?: (comment: ItemComment) => void
   title?: string
 }) {
+  const t = useT()
   const { user } = useAuth()
   const itemThreads = useItemComments(suggestionId ? undefined : itemId)
   const suggestionThreads = useSuggestionComments(suggestionId)
@@ -331,14 +336,14 @@ export default function CommentsSection({
   return (
     <div className="border-t border-slate-200 pt-4">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {title}{threads.length > 0 && ` (${openCount} open${resolvedCount ? `, ${resolvedCount} resolved` : ''})`}
+        {t(title)}{threads.length > 0 && ` (${t('{n} open', { n: openCount })}${resolvedCount ? `, ${t('{n} resolved', { n: resolvedCount })}` : ''})`}
       </h3>
 
       <div className="mb-3">
-        <CommentForm placeholder="Add a comment… (@ to mention someone)" submitLabel="Comment" onSubmit={submitTopLevel} users={users} />
+        <CommentForm placeholder={t('Add a comment… (@ to mention someone)')} submitLabel={t('Comment')} onSubmit={submitTopLevel} users={users} />
       </div>
 
-      {isLoading && <p className="text-xs text-slate-400">Loading comments…</p>}
+      {isLoading && <p className="text-xs text-slate-400">{t('Loading comments…')}</p>}
 
       <div className="space-y-2">
         {threads.map((thread) => (
@@ -346,7 +351,7 @@ export default function CommentsSection({
         ))}
         {!isLoading && threads.length === 0 && (
           <p className="text-xs text-slate-400">
-            {filter === 'unresolved' ? 'No open comments.' : 'No comments yet.'}
+            {filter === 'unresolved' ? t('No open comments.') : t('No comments yet.')}
           </p>
         )}
       </div>

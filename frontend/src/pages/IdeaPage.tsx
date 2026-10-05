@@ -14,21 +14,23 @@ import {
 import { btn, input } from '../components/collab/Modal'
 import TransitionPanel from '../components/collab/TransitionPanel'
 import { IdeaStatusBadge, VoteButton } from './RoadmapPage'
+import { useT } from '../i18n'
 
 const HORIZON: Record<string, string> = { now: 'Now', next: 'Soon', later: 'Later' }
 
 export default function IdeaPage() {
+  const t = useT()
   const { ideaId } = useParams<{ ideaId: string }>()
   const { data: idea, isLoading } = useIdea(ideaId)
   const action = useRoadmapAction()
   const [editing, setEditing] = useState(false)
 
-  if (isLoading || !idea) return <div className="p-6 text-slate-500">Loading…</div>
+  if (isLoading || !idea) return <div className="p-6 text-slate-500">{t('Loading…')}</div>
 
   return (
     <div className="mx-auto max-w-5xl p-6">
       <Link to="/roadmap?tab=ideas" className="text-xs text-slate-500 hover:text-blue-600">
-        ← All ideas
+        ← {t('All ideas')}
       </Link>
       <div className="mt-2 flex gap-4">
         <VoteButton idea={idea} />
@@ -42,20 +44,20 @@ export default function IdeaPage() {
                 <IdeaStatusBadge idea={idea} />
                 {idea.horizon && !['released', 'declined', 'duplicate'].includes(idea.status) && (
                   <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                    {{ now: 'Now', next: 'Soon', later: 'Later' }[idea.horizon]}
+                    {t(HORIZON[idea.horizon] ?? idea.horizon)}
                   </span>
                 )}
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{idea.description || <i className="text-slate-400">No description.</i>}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{idea.description || <i className="text-slate-400">{t('No description.')}</i>}</p>
             </>
           )}
           {idea.duplicate_of && (
             <p className="mt-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-600">
-              Duplicate of{' '}
+              {t('Duplicate of')}{' '}
               <Link className="text-blue-700 hover:underline" to={`/roadmap/ideas/${idea.duplicate_of.id}`}>
                 {idea.duplicate_of.key} {idea.duplicate_of.title}
               </Link>{' '}
-              — votes and followers were moved there.
+              — {t('votes and followers were moved there.')}
             </p>
           )}
           {idea.release && (
@@ -74,10 +76,10 @@ export default function IdeaPage() {
           <section className="rounded-lg border border-slate-200 bg-white p-3">
             <dl className="space-y-1.5 text-xs">
               <Row k="ID" v={idea.key} />
-              <Row k="Category" v={idea.category} />
-              <Row k="Submitted by" v={`${idea.author} · ${idea.organization}`} />
-              <Row k="Submitted" v={new Date(idea.created_at).toLocaleDateString()} />
-              <Row k="Followers" v={String(idea.watchers)} />
+              <Row k={t('Category')} v={idea.category} />
+              <Row k={t('Submitted by')} v={`${idea.author} · ${idea.organization}`} />
+              <Row k={t('Submitted')} v={new Date(idea.created_at).toLocaleDateString()} />
+              <Row k={t('Followers')} v={String(idea.watchers)} />
             </dl>
             <div className="mt-3 flex gap-2">
               <button className={btn.secondary} onClick={() => action.mutate({ method: 'post', path: `/ideas/${idea.id}/watch` })}>
@@ -85,7 +87,7 @@ export default function IdeaPage() {
               </button>
               {idea.can_edit && !editing && (
                 <button className={btn.ghost} onClick={() => setEditing(true)}>
-                  Edit
+                  {t('Edit')}
                 </button>
               )}
             </div>
@@ -94,7 +96,7 @@ export default function IdeaPage() {
           {idea.can_manage && <ProductPanel idea={idea} />}
 
           <section className="rounded-lg border border-slate-200 bg-white p-3">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Status history</h2>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('Status history')}</h2>
             <ol className="relative ml-2 border-l border-slate-200 text-xs">
               {idea.timeline.map((t, i) => (
                 <li key={i} className="mb-2 ml-3">
@@ -122,6 +124,7 @@ function Row({ k, v }: { k: string; v: string }) {
 }
 
 function EditIdea({ idea, onDone }: { idea: IdeaDetail; onDone: () => void }) {
+  const t = useT()
   const { data: meta } = useRoadmapMeta()
   const action = useRoadmapAction()
   const [title, setTitle] = useState(idea.title)
@@ -141,10 +144,10 @@ function EditIdea({ idea, onDone }: { idea: IdeaDetail; onDone: () => void }) {
           className={btn.primary}
           onClick={() => action.mutate({ method: 'patch', path: `/ideas/${idea.id}`, body: { title, description, category } }, { onSuccess: onDone })}
         >
-          Save
+          {t('Save')}
         </button>
         <button className={btn.secondary} onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </button>
       </div>
     </div>
@@ -152,6 +155,8 @@ function EditIdea({ idea, onDone }: { idea: IdeaDetail; onDone: () => void }) {
 }
 
 function ProductPanel({ idea }: { idea: IdeaDetail }) {
+  const t = useT()
+  const tx = t
   const { data: workflow } = useSubjectWorkflow('idea', idea.id)
   const transition = useSubjectTransition('idea')
   const action = useRoadmapAction()
@@ -160,14 +165,14 @@ function ProductPanel({ idea }: { idea: IdeaDetail }) {
   const [note, setNote] = useState(idea.internal_note ?? '')
   return (
     <section className="space-y-3 rounded-lg border border-violet-200 bg-violet-50/50 p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-violet-700">Product team</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-violet-700">{t('Product team')}</h2>
       <TransitionPanel
         workflow={workflow}
         run={(key, inp) => transition.mutateAsync({ id: idea.id, key, input: inp })}
         extraFields={(t, values, set) =>
           t.key === 'release' ? (
             <select className={input} value={String(values.release_note_id ?? '')} onChange={(e) => set('release_note_id', e.target.value)}>
-              <option value="">Release-notes entry (required)…</option>
+              <option value="">{tx('Release-notes entry (required)…')}</option>
               {(notes ?? []).map((n) => (
                 <option key={n.id} value={n.id}>
                   v{n.version} — {n.title}
@@ -176,7 +181,7 @@ function ProductPanel({ idea }: { idea: IdeaDetail }) {
             </select>
           ) : t.key === 'mark_duplicate' ? (
             <select className={input} value={String(values.duplicate_of_id ?? '')} onChange={(e) => set('duplicate_of_id', e.target.value)}>
-              <option value="">Original idea (required)…</option>
+              <option value="">{tx('Original idea (required)…')}</option>
               {(others?.items ?? [])
                 .filter((o) => o.id !== idea.id && o.status !== 'duplicate')
                 .map((o) => (
@@ -191,9 +196,9 @@ function ProductPanel({ idea }: { idea: IdeaDetail }) {
       <div className="grid grid-cols-3 gap-2 text-xs">
         {(
           [
-            ['horizon', 'Horizon', ['', 'now', 'next', 'later']],
-            ['priority', 'Priority', ['', 'low', 'medium', 'high']],
-            ['effort', 'Effort', ['', 'S', 'M', 'L', 'XL']],
+            ['horizon', t('Horizon'), ['', 'now', 'next', 'later']],
+            ['priority', t('Priority'), ['', 'low', 'medium', 'high']],
+            ['effort', t('Effort'), ['', 'S', 'M', 'L', 'XL']],
           ] as const
         ).map(([field, label, options]) => (
           <label key={field}>
@@ -205,7 +210,7 @@ function ProductPanel({ idea }: { idea: IdeaDetail }) {
             >
               {options.map((o) => (
                 <option key={o} value={o}>
-                  {o ? (HORIZON[o] ?? o) : '—'}
+                  {o ? t(HORIZON[o] ?? o) : '—'}
                 </option>
               ))}
             </select>
@@ -213,7 +218,7 @@ function ProductPanel({ idea }: { idea: IdeaDetail }) {
         ))}
       </div>
       <label className="block text-xs">
-        <span className="mb-0.5 block text-slate-500">Internal note (never shown to users)</span>
+        <span className="mb-0.5 block text-slate-500">{t('Internal note (never shown to users)')}</span>
         <textarea
           className="w-full rounded border border-slate-300 px-1 py-0.5"
           rows={3}
@@ -227,6 +232,7 @@ function ProductPanel({ idea }: { idea: IdeaDetail }) {
 }
 
 function Comments({ idea }: { idea: IdeaDetail }) {
+  const t = useT()
   const { data: comments } = useIdeaComments(idea.id)
   const action = useRoadmapAction()
   const [body, setBody] = useState('')
@@ -241,7 +247,7 @@ function Comments({ idea }: { idea: IdeaDetail }) {
     setError(null)
     action.mutate(
       { method: 'post', path: `/ideas/${idea.id}/comments`, body: { body: text, official: isOfficial, parent_id: parent } },
-      { onSuccess: done, onError: (e) => setError(apiErrorMessage(e, 'Could not post.')) },
+      { onSuccess: done, onError: (e) => setError(apiErrorMessage(e, t('Could not post.'))) },
     )
   }
 
@@ -250,14 +256,14 @@ function Comments({ idea }: { idea: IdeaDetail }) {
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Discussion ({(comments ?? []).length})</h2>
       {idea.status === 'needs_info' && idea.mine && (
         <p className="mb-2 rounded-md bg-violet-50 px-3 py-2 text-xs text-violet-800">
-          The product team needs more information — your reply sends the idea back to review.
+          {t('The product team needs more information — your reply sends the idea back to review.')}
         </p>
       )}
       <div className="mb-4 space-y-2">
-        <textarea className={input} rows={3} placeholder="Add a comment…" value={body} onChange={(e) => setBody(e.target.value)} />
+        <textarea className={input} rows={3} placeholder={t('Add a comment…')} value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="flex items-center gap-3">
           <button className={btn.primary} disabled={!body.trim()} onClick={() => post(body, null, official, () => { setBody(''); setOfficial(false) })}>
-            Comment
+            {t('Comment')}
           </button>
           {idea.can_manage && (
             <label className="flex items-center gap-1 text-xs text-violet-700">
@@ -291,17 +297,17 @@ function Comments({ idea }: { idea: IdeaDetail }) {
               <div className="ml-4 mt-2 space-y-1">
                 <textarea className={input} rows={2} value={reply} onChange={(e) => setReply(e.target.value)} />
                 <button className={btn.primary} disabled={!reply.trim()} onClick={() => post(reply, c.id, false, () => { setReply(''); setReplyTo(null) })}>
-                  Reply
+                  {t('Reply')}
                 </button>
               </div>
             ) : (
               <button className="mt-1 text-xs text-slate-500 hover:text-blue-600" onClick={() => setReplyTo(c.id)}>
-                Reply
+                {t('Reply')}
               </button>
             )}
           </li>
         ))}
-        {top.length === 0 && <li className="text-sm text-slate-400">No comments yet.</li>}
+        {top.length === 0 && <li className="text-sm text-slate-400">{t('No comments yet.')}</li>}
       </ul>
     </section>
   )

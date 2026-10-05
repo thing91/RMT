@@ -106,8 +106,8 @@ export default function Home() {
   if (!org) {
     return (
       <div className="p-6 text-slate-500">
-        No organization found. Run{' '}
-        <code className="mx-1 rounded bg-slate-100 px-1">python -m app.seed</code> in the backend.
+        {t('No organization found. Run')}{' '}
+        <code className="mx-1 rounded bg-slate-100 px-1">python -m app.seed</code> {t('in the backend.')}
       </div>
     )
   }

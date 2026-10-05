@@ -3,6 +3,7 @@ import { useWorkflowCatalog } from '../../api/collabHooks'
 import type { WorkflowRule, WorkflowState, WorkflowTransition } from '../../api/types'
 import { btn } from './Modal'
 import StatusBadge from './StatusBadge'
+import { useT } from '../../i18n'
 
 export interface WorkflowDraft {
   name: string
@@ -28,6 +29,7 @@ export default function WorkflowVisualEditor({
   onSave: (draft: WorkflowDraft) => void
   saving?: boolean
 }) {
+  const t = useT()
   const { data: catalog } = useWorkflowCatalog()
   const [wf, setWf] = useState<WorkflowDraft>(initial)
   const [open, setOpen] = useState<string | null>(null)
@@ -56,22 +58,22 @@ export default function WorkflowVisualEditor({
   return (
     <div className="space-y-4 text-xs">
       <label className="flex items-center gap-2">
-        <span className="font-medium text-slate-500">Name</span>
+        <span className="font-medium text-slate-500">{t('Name')}</span>
         <input className={`${cell} w-64`} value={wf.name} onChange={(e) => setWf({ ...wf, name: e.target.value })} />
       </label>
 
       <section>
-        <h3 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">States</h3>
+        <h3 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">{t('States')}</h3>
         <table className="w-full">
           <thead className="text-left text-slate-400">
             <tr>
-              <th className="font-medium">Label</th>
-              <th className="font-medium">Key</th>
-              <th className="font-medium">Category</th>
-              <th className="font-medium" title="Content can't be edited in this state">Read-only</th>
-              <th className="font-medium" title="Entering this state retires the item">Obsolete</th>
-              <th className="font-medium">Initial</th>
-              <th className="font-medium">Color</th>
+              <th className="font-medium">{t('Label')}</th>
+              <th className="font-medium">{t('Key')}</th>
+              <th className="font-medium">{t('Category')}</th>
+              <th className="font-medium" title={t('Content can\'t be edited in this state')}>{t('Read-only')}</th>
+              <th className="font-medium" title={t('Entering this state retires the item')}>{t('Obsolete')}</th>
+              <th className="font-medium">{t('Initial')}</th>
+              <th className="font-medium">{t('Color')}</th>
               <th />
             </tr>
           </thead>
@@ -110,7 +112,7 @@ export default function WorkflowVisualEditor({
                   <input type="color" className="h-5 w-8" value={s.color ?? '#64748b'} onChange={(e) => setState(i, { color: e.target.value })} />
                 </td>
                 <td>
-                  <button className="text-slate-400 hover:text-red-600" onClick={() => removeState(i)} title="Remove state">
+                  <button className="text-slate-400 hover:text-red-600" onClick={() => removeState(i)} title={t('Remove state')}>
                     ✕
                   </button>
                 </td>
@@ -125,17 +127,17 @@ export default function WorkflowVisualEditor({
               ...w,
               states: [
                 ...w.states,
-                { key: `new_${w.states.length + 1}`, label: 'New state', category: 'active', read_only: false, is_obsolete: false, initial: false, color: '#64748b' },
+                { key: `new_${w.states.length + 1}`, label: t('New state'), category: 'active', read_only: false, is_obsolete: false, initial: false, color: '#64748b' },
               ],
             }))
           }
         >
-          + State
+          + {t('State')}
         </button>
       </section>
 
       <section>
-        <h3 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">Transitions</h3>
+        <h3 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">{t('Transitions')}</h3>
         <div className="space-y-1.5">
           {wf.transitions.map((t, i) => (
             <div key={i} className="rounded-md border border-slate-200">
@@ -170,18 +172,18 @@ export default function WorkflowVisualEditor({
               ...w,
               transitions: [
                 ...w.transitions,
-                { key, label: 'New transition', from: [w.states[0]?.key], to: w.states[0]?.key, roles: [], conditions: [], actions: [], requires_comment: false },
+                { key, label: t('New transition'), from: [w.states[0]?.key], to: w.states[0]?.key, roles: [], conditions: [], actions: [], requires_comment: false },
               ],
             }))
             setOpen(key)
           }}
         >
-          + Transition
+          + {t('Transition')}
         </button>
       </section>
 
       <button className={btn.primary} disabled={saving} onClick={() => onSave(wf)}>
-        Save workflow
+        {t('Save workflow')}
       </button>
     </div>
   )
@@ -200,6 +202,7 @@ function TransitionForm({
   onChange: (patch: Partial<WorkflowTransition>) => void
   onRemove: () => void
 }) {
+  const tx = useT()
   const [customRole, setCustomRole] = useState('')
   const tokens = [...new Set([...(catalog?.role_tokens ?? []), ...t.roles])]
   return (
@@ -209,15 +212,15 @@ function TransitionForm({
         <input className={`${cell} w-32 font-mono`} value={t.key} onChange={(e) => onChange({ key: slug(e.target.value) })} />
         <label className="flex items-center gap-1">
           <input type="checkbox" checked={t.requires_comment} onChange={(e) => onChange({ requires_comment: e.target.checked })} />
-          comment required
+          {tx('comment required')}
         </label>
         <button className="ml-auto text-slate-400 hover:text-red-600" onClick={onRemove}>
-          Remove transition
+          {tx('Remove transition')}
         </button>
       </div>
       <div className="flex flex-wrap items-start gap-4">
         <fieldset>
-          <legend className="mb-0.5 font-medium text-slate-500">From</legend>
+          <legend className="mb-0.5 font-medium text-slate-500">{tx('From')}</legend>
           {states.map((s) => (
             <label key={s.key} className="mr-2 inline-flex items-center gap-1">
               <input
@@ -230,7 +233,7 @@ function TransitionForm({
           ))}
         </fieldset>
         <label>
-          <span className="mb-0.5 block font-medium text-slate-500">To</span>
+          <span className="mb-0.5 block font-medium text-slate-500">{tx('To')}</span>
           <select className={cell} value={t.to} onChange={(e) => onChange({ to: e.target.value })}>
             {states.map((s) => (
               <option key={s.key} value={s.key}>
@@ -255,7 +258,7 @@ function TransitionForm({
           </label>
         ))}
         <span className="inline-flex items-center gap-1">
-          <input className={`${cell} w-40 font-mono`} placeholder="perm:suggestion.resolve" value={customRole} onChange={(e) => setCustomRole(e.target.value)} />
+          <input className={`${cell} w-40 font-mono`} placeholder={tx('perm:suggestion.resolve')} value={customRole} onChange={(e) => setCustomRole(e.target.value)} />
           <button
             className={btn.ghost}
             disabled={!customRole.trim()}
@@ -264,12 +267,12 @@ function TransitionForm({
               setCustomRole('')
             }}
           >
-            add
+            {tx('add')}
           </button>
         </span>
       </fieldset>
-      <RuleList title="Conditions (all must hold)" rules={t.conditions} types={catalog?.conditions ?? []} onChange={(conditions) => onChange({ conditions })} />
-      <RuleList title="Actions (run after the change)" rules={t.actions} types={catalog?.actions ?? []} onChange={(actions) => onChange({ actions })} />
+      <RuleList title={tx('Conditions (all must hold)')} rules={t.conditions} types={catalog?.conditions ?? []} onChange={(conditions) => onChange({ conditions })} />
+      <RuleList title={tx('Actions (run after the change)')} rules={t.actions} types={catalog?.actions ?? []} onChange={(actions) => onChange({ actions })} />
     </div>
   )
 }
@@ -285,6 +288,7 @@ function RuleList({
   types: string[]
   onChange: (rules: WorkflowRule[]) => void
 }) {
+  const t = useT()
   return (
     <div>
       <div className="mb-0.5 font-medium text-slate-500">{title}</div>
@@ -308,7 +312,7 @@ function RuleList({
         )
       })}
       <button className={btn.ghost} onClick={() => onChange([...rules, { type: types[0] ?? 'notify' }])}>
-        + add
+        + {t('add')}
       </button>
     </div>
   )

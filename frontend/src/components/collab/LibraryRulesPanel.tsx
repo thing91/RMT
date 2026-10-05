@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../api/client'
 import { useLibraryRules, useSetLibraryRules } from '../../api/libraryHooks'
 import type { LibraryRuleSpec, MissionAttributeDef } from '../../api/types'
 import { btn } from './Modal'
+import { useT } from '../../i18n'
 
 const OPS: { value: LibraryRuleSpec['op']; label: string; needsValue: boolean }[] = [
   { value: 'falsy', label: 'is No / empty', needsValue: false },
@@ -25,6 +26,7 @@ function parseValue(raw: string, def?: MissionAttributeDef, op?: string): unknow
  * has no propulsion, suggest Not applicable". Projects only ever get a
  * suggestion; a person confirms it. */
 export default function LibraryRulesPanel({ itemId, defs, canEdit }: { itemId: string; defs: MissionAttributeDef[]; canEdit: boolean }) {
+  const t = useT()
   const { data: rules } = useLibraryRules(itemId)
   const save = useSetLibraryRules(itemId)
   const [draft, setDraft] = useState<LibraryRuleSpec[] | null>(null)
@@ -33,7 +35,7 @@ export default function LibraryRulesPanel({ itemId, defs, canEdit }: { itemId: s
   const update = (i: number, patch: Partial<LibraryRuleSpec>) => setDraft(current.map((r, j) => (j === i ? { ...r, ...patch } : r)))
 
   if (defs.length === 0)
-    return <p className="text-xs text-slate-400">Define mission attributes on the library's Releases page to add rules.</p>
+    return <p className="text-xs text-slate-400">{t('Define mission attributes on the library\'s Releases page to add rules.')}</p>
 
   return (
     <div className="space-y-2 text-xs">
@@ -44,7 +46,7 @@ export default function LibraryRulesPanel({ itemId, defs, canEdit }: { itemId: s
         return (
           <div key={i} className="space-y-1 rounded-md border border-slate-200 p-2">
             <div className="flex flex-wrap items-center gap-1">
-              If
+              {t('If')}
               <select disabled={!canEdit} className="rounded border border-slate-300 px-1" value={r.attribute} onChange={(e) => update(i, { attribute: e.target.value })}>
                 {defs.map((d) => (
                   <option key={d.key} value={d.key}>
@@ -67,10 +69,10 @@ export default function LibraryRulesPanel({ itemId, defs, canEdit }: { itemId: s
                   onBlur={(e) => update(i, { value: parseValue(e.target.value, def, r.op) })}
                 />
               )}
-              → suggest
+              → {t('suggest')}
               <select disabled={!canEdit} className="rounded border border-slate-300 px-1" value={r.suggest} onChange={(e) => update(i, { suggest: e.target.value as LibraryRuleSpec['suggest'] })}>
-                <option value="not_applicable">Not applicable</option>
-                <option value="applicable">Applicable</option>
+                <option value="not_applicable">{t('Not applicable')}</option>
+                <option value="applicable">{t('Applicable')}</option>
               </select>
               {canEdit && (
                 <button className="ml-auto text-slate-400 hover:text-red-600" onClick={() => setDraft(current.filter((_, j) => j !== i))}>
@@ -81,18 +83,18 @@ export default function LibraryRulesPanel({ itemId, defs, canEdit }: { itemId: s
             <input
               disabled={!canEdit}
               className="w-full rounded border border-slate-300 px-1 py-0.5"
-              placeholder="Reason shown to the project"
+              placeholder={t('Reason shown to the project')}
               value={r.reason ?? ''}
               onChange={(e) => update(i, { reason: e.target.value })}
             />
           </div>
         )
       })}
-      {current.length === 0 && <p className="text-slate-400">No rules — always assessed manually.</p>}
+      {current.length === 0 && <p className="text-slate-400">{t('No rules — always assessed manually.')}</p>}
       {canEdit && (
         <div className="flex gap-2">
           <button className={btn.secondary} onClick={() => setDraft([...current, { attribute: defs[0].key, op: 'falsy', suggest: 'not_applicable' }])}>
-            + Rule
+            + {t('Rule')}
           </button>
           {draft && (
             <button
@@ -103,11 +105,11 @@ export default function LibraryRulesPanel({ itemId, defs, canEdit }: { itemId: s
                     setDraft(null)
                     setError(null)
                   },
-                  onError: (e) => setError(apiErrorMessage(e, 'Could not save rules.')),
+                  onError: (e) => setError(apiErrorMessage(e, t('Could not save rules.'))),
                 })
               }
             >
-              Save rules
+              {t('Save rules')}
             </button>
           )}
         </div>

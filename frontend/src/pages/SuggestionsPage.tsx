@@ -11,10 +11,12 @@ import { btn } from '../components/collab/Modal'
 import { SuggestionStatus } from '../components/collab/SuggestionsPanel'
 import DiffText from '../components/collab/DiffText'
 import { useAuth } from '../auth/AuthContext'
+import { useT } from '../i18n'
 
 /** Project-wide list of change suggestions (RIDs) with filters and the
  * customer-facing XLSX export. */
 export default function SuggestionsPage() {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const { user } = useAuth()
   const [filters, setFilters] = useState<SuggestionFilters>({ status: 'open,outdated' })
@@ -31,28 +33,27 @@ export default function SuggestionsPage() {
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-800">Change suggestions (RIDs)</h1>
+          <h1 className="text-lg font-semibold text-slate-800">{t('Change suggestions (RIDs)')}</h1>
           <p className="text-sm text-slate-500">
-            Formal proposals to change a requirement — each must be accepted, accepted with modification or rejected
-            with a justification.
+            {t('Formal proposals to change a requirement — each must be accepted, accepted with modification or rejected with a justification.')}
           </p>
         </div>
         {projectId && (
           <a className={btn.secondary} href={suggestionsExportUrl(projectId, effective)}>
-            Export to Excel
+            {t('Export to Excel')}
           </a>
         )}
       </div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select className={select} value={filters.status ?? ''} onChange={(e) => set('status', e.target.value)}>
-          <option value="open,outdated">Open (incl. outdated)</option>
-          <option value="accepted,accepted_modified">Accepted</option>
-          <option value="rejected">Rejected</option>
-          <option value="withdrawn">Withdrawn</option>
-          <option value="">Any status</option>
+          <option value="open,outdated">{t('Open (incl. outdated)')}</option>
+          <option value="accepted,accepted_modified">{t('Accepted')}</option>
+          <option value="rejected">{t('Rejected')}</option>
+          <option value="withdrawn">{t('Withdrawn')}</option>
+          <option value="">{t('Any status')}</option>
         </select>
         <select className={select} value={filters.review_id ?? ''} onChange={(e) => set('review_id', e.target.value)}>
-          <option value="">Any review</option>
+          <option value="">{t('Any review')}</option>
           {(reviews ?? []).map((r) => (
             <option key={r.id} value={r.id}>
               {r.key} {r.title}
@@ -60,14 +61,14 @@ export default function SuggestionsPage() {
           ))}
         </select>
         <select className={select} value={filters.kind ?? ''} onChange={(e) => set('kind', e.target.value)}>
-          <option value="">Technical + editorial</option>
-          <option value="technical">Technical</option>
-          <option value="editorial">Editorial</option>
+          <option value="">{t('Technical + editorial')}</option>
+          <option value="technical">{t('Technical')}</option>
+          <option value="editorial">{t('Editorial')}</option>
         </select>
         <select className={select} value={filters.severity ?? ''} onChange={(e) => set('severity', e.target.value)}>
-          <option value="">Major + minor</option>
-          <option value="major">Major</option>
-          <option value="minor">Minor</option>
+          <option value="">{t('Major + minor')}</option>
+          <option value="major">{t('Major')}</option>
+          <option value="minor">{t('Minor')}</option>
         </select>
         {user && (
           <label className="flex items-center gap-1 text-xs text-slate-600">
@@ -79,14 +80,14 @@ export default function SuggestionsPage() {
         <table className="w-full text-xs">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              <th className="px-3 py-2 font-medium">ID</th>
-              <th className="font-medium">Requirement</th>
-              <th className="font-medium">Field</th>
-              <th className="font-medium">Justification</th>
-              <th className="font-medium">Class</th>
-              <th className="font-medium">Author</th>
-              <th className="font-medium">Review</th>
-              <th className="font-medium">Status</th>
+              <th className="px-3 py-2 font-medium">{t('ID')}</th>
+              <th className="font-medium">{t('Requirement')}</th>
+              <th className="font-medium">{t('Field')}</th>
+              <th className="font-medium">{t('Justification')}</th>
+              <th className="font-medium">{t('Class')}</th>
+              <th className="font-medium">{t('Author')}</th>
+              <th className="font-medium">{t('Review')}</th>
+              <th className="font-medium">{t('Status')}</th>
             </tr>
           </thead>
           <tbody>
@@ -131,7 +132,7 @@ export default function SuggestionsPage() {
             {!isLoading && (suggestions ?? []).length === 0 && (
               <tr>
                 <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
-                  No suggestions match.
+                  {t('No suggestions match.')}
                 </td>
               </tr>
             )}
@@ -143,22 +144,23 @@ export default function SuggestionsPage() {
 }
 
 function ExpandedSuggestion({ id }: { id: string }) {
+  const t = useT()
   const { data: s } = useSuggestionDetail(id)
-  if (!s) return <span className="text-slate-400">Loading…</span>
+  if (!s) return <span className="text-slate-400">{t('Loading…')}</span>
   return (
     <div className="space-y-1">
       <div className="text-sm">
         <DiffText ops={s.status === 'outdated' ? s.diff_vs_current : s.diff} />
       </div>
       <div className="text-slate-600">
-        <b>Why:</b> {s.rationale}
+        <b>{t('Why:')}</b> {s.rationale}
       </div>
       {s.resolution_text && (
         <div className="text-slate-600">
           <b>Response ({s.resolved_by}):</b> {s.resolution_text}
         </div>
       )}
-      <div className="text-slate-400">Open the requirement to accept, reject or discuss it.</div>
+      <div className="text-slate-400">{t('Open the requirement to accept, reject or discuss it.')}</div>
     </div>
   )
 }

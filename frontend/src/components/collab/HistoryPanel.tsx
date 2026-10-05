@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useItemAudit, useItemDiff, useItemVersions, useSignatures, useSubjectWorkflow } from '../../api/collabHooks'
 import DiffText, { fieldLabel, formatValue } from './DiffText'
+import { useT } from '../../i18n'
 
 const REASON_LABEL: Record<string, string> = {
   create: 'Created',
@@ -15,6 +16,7 @@ const REASON_LABEL: Record<string, string> = {
 /** Version history with a diff against the previous version (or the
  * current state), the workflow timeline, signatures and audit events. */
 export default function HistoryPanel({ itemId, currentVersion }: { itemId: string; currentVersion: number }) {
+  const t = useT()
   const { data: versions } = useItemVersions(itemId)
   const { data: workflow } = useSubjectWorkflow('item', itemId)
   const { data: signatures } = useSignatures(itemId)
@@ -31,7 +33,7 @@ export default function HistoryPanel({ itemId, currentVersion }: { itemId: strin
   return (
     <div className="space-y-4 text-xs">
       <section>
-        <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">Versions</h4>
+        <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">{t('Versions')}</h4>
         <ul className="divide-y divide-slate-100 rounded-md border border-slate-200">
           {(versions ?? []).map((v) => (
             <li key={v.version}>
@@ -43,7 +45,7 @@ export default function HistoryPanel({ itemId, currentVersion }: { itemId: strin
               >
                 <span className="w-8 shrink-0 font-mono font-semibold text-slate-700">v{v.version}</span>
                 <span className="flex-1">
-                  <span className="font-medium text-slate-700">{REASON_LABEL[v.reason] ?? v.reason}</span>
+                  <span className="font-medium text-slate-700">{t(REASON_LABEL[v.reason] ?? v.reason)}</span>
                   {v.source_ref && <span className="text-slate-500"> · {v.source_ref}</span>}
                   {v.status && <span className="text-slate-500"> · {v.status}</span>}
                   <span className="block text-slate-400">
@@ -62,16 +64,16 @@ export default function HistoryPanel({ itemId, currentVersion }: { itemId: strin
                       checked={compareCurrent}
                       onChange={(e) => setCompareCurrent(e.target.checked)}
                     />
-                    Compare v{v.version} with the current version (v{currentVersion}) instead of v{v.version - 1}
+                    {t('Compare v{a} with the current version (v{b}) instead of v{c}', { a: v.version, b: currentVersion, c: v.version - 1 })}
                   </label>
                   {v.version === 1 && !compareCurrent ? (
-                    <p className="text-slate-400">First version — nothing to compare against.</p>
+                    <p className="text-slate-400">{t('First version — nothing to compare against.')}</p>
                   ) : (
                     <div className="space-y-2">
-                      {(diff?.changes ?? []).length === 0 && <p className="text-slate-400">No content changes.</p>}
+                      {(diff?.changes ?? []).length === 0 && <p className="text-slate-400">{t('No content changes.')}</p>}
                       {(diff?.changes ?? []).map((c) => (
                         <div key={c.field}>
-                          <div className="font-semibold text-slate-500">{fieldLabel(c.field)}</div>
+                          <div className="font-semibold text-slate-500">{t(fieldLabel(c.field))}</div>
                           {c.ops ? (
                             <DiffText ops={c.ops} />
                           ) : (
@@ -93,7 +95,7 @@ export default function HistoryPanel({ itemId, currentVersion }: { itemId: strin
 
       {workflow && workflow.history.length > 0 && (
         <section>
-          <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">Workflow timeline</h4>
+          <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">{t('Workflow timeline')}</h4>
           <ol className="relative ml-2 border-l border-slate-200">
             {workflow.history.map((h) => (
               <li key={h.id} className="mb-2 ml-3">
@@ -115,12 +117,12 @@ export default function HistoryPanel({ itemId, currentVersion }: { itemId: strin
 
       {(signatures ?? []).length > 0 && (
         <section>
-          <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">Electronic signatures</h4>
+          <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">{t('Electronic signatures')}</h4>
           <ul className="space-y-1">
             {signatures!.map((s) => (
               <li key={s.id} className="rounded-md bg-slate-50 px-2 py-1">
                 ✍ <b>{s.user}</b> — {s.meaning} (v{s.subject_version}) · {new Date(s.signed_at).toLocaleString()}
-                <span className="block font-mono text-[10px] text-slate-400" title="SHA-256 of the signed content">
+                <span className="block font-mono text-[10px] text-slate-400" title={t('SHA-256 of the signed content')}>
                   {s.content_hash.slice(0, 32)}…
                 </span>
               </li>
@@ -131,7 +133,7 @@ export default function HistoryPanel({ itemId, currentVersion }: { itemId: strin
 
       {otherAudit.length > 0 && (
         <section>
-          <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">Audit</h4>
+          <h4 className="mb-1 font-semibold uppercase tracking-wide text-slate-500">{t('Audit')}</h4>
           <ul className="space-y-1">
             {otherAudit.map((e) => (
               <li key={e.id} className="text-slate-600">

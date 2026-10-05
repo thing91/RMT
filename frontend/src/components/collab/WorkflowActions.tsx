@@ -22,7 +22,17 @@ export default function WorkflowActions({
   const [menuOpen, setMenuOpen] = useState(false)
   if (!workflow) return null
   const current = workflow.states.find((s) => s.key === workflow.state)
-  const primary = workflow.transitions.find((x) => x.allowed)
+  // The primary button is the next step *forward*: the nearest later state
+  // in the workflow's order that isn't a side exit (reject, retire) or a
+  // step back to draft. Anything else lives under "More".
+  const indexOf = (key: string) => workflow.states.findIndex((s) => s.key === key)
+  const here = indexOf(workflow.state ?? '')
+  const primary = workflow.transitions
+    .filter((x) => {
+      const to = workflow.states.find((s) => s.key === x.to)
+      return x.allowed && to && indexOf(x.to) > here && to.category !== 'side' && to.category !== 'draft'
+    })
+    .sort((a, b) => indexOf(a.to) - indexOf(b.to))[0]
   const rest = workflow.transitions.filter((x) => x !== primary)
 
   return (

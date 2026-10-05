@@ -4,11 +4,13 @@ import { useItemLock, useItemLockActions } from '../../api/collabHooks'
 import { btn } from './Modal'
 import { sinceText } from './useEditSession'
 import PresenceAvatar from './PresenceAvatar'
+import { useT } from '../../i18n'
 
 /** "Edytuje: Anna, 3 min" — shown while someone else holds the item's
  * edit lock. Offers "notify me when free" and, for lock.override holders,
  * release/take over (both audited). */
 export default function LockBanner({ itemId }: { itemId: string }) {
+  const t = useT()
   const { data } = useItemLock(itemId)
   const actions = useItemLockActions(itemId)
   const [note, setNote] = useState<string | null>(null)
@@ -22,7 +24,7 @@ export default function LockBanner({ itemId }: { itemId: string }) {
       await fn()
       setNote(ok)
     } catch (err) {
-      setNote(apiErrorMessage(err, 'That did not work.'))
+      setNote(apiErrorMessage(err, t('That did not work.')))
     } finally {
       setConfirm(null)
     }
@@ -33,40 +35,40 @@ export default function LockBanner({ itemId }: { itemId: string }) {
       <div className="flex flex-wrap items-center gap-2">
         <PresenceAvatar lock={lock} size={22} />
         <span>
-          <b>{lock.user_name}</b> is editing this ({sinceText(lock.acquired_at)}) — read-only for you.
+          <b>{lock.user_name}</b> {t('is editing this ({since}) — read-only for you.', { since: sinceText(lock.acquired_at) })}
         </span>
         <button
           className={btn.ghost}
           onClick={() => run(actions.notifyWhenFree, "OK — you'll be notified when it's free.")}
         >
-          Notify me when free
+          {t('Notify me when free')}
         </button>
         {data.can_override &&
           (confirm ? (
             <span className="flex items-center gap-1">
-              {confirm === 'take' ? 'Take over' : 'Release'} {lock.user_name}'s lock? Their unsaved work may be lost.
+              {confirm === 'take' ? t('Take over') : t('Release')} {lock.user_name}'s lock? Their unsaved work may be lost.
               <button
                 className="font-semibold text-red-700 hover:underline"
                 onClick={() =>
                   run(
                     () => actions.override(confirm === 'take'),
-                    confirm === 'take' ? 'You now hold the lock.' : 'Lock released.',
+                    confirm === 'take' ? t('You now hold the lock.') : t('Lock released.'),
                   )
                 }
               >
-                Yes
+                {t('Yes')}
               </button>
               <button className={btn.ghost} onClick={() => setConfirm(null)}>
-                No
+                {t('No')}
               </button>
             </span>
           ) : (
             <>
               <button className={btn.ghost} onClick={() => setConfirm('release')}>
-                Release lock
+                {t('Release lock')}
               </button>
               <button className={btn.ghost} onClick={() => setConfirm('take')}>
-                Take over
+                {t('Take over')}
               </button>
             </>
           ))}

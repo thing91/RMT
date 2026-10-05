@@ -1,10 +1,12 @@
 import { useLinkCreation, type LinkEndpoint } from '../linking/LinkCreationContext'
+import { useT } from '../i18n'
 
 /** Two small per-row buttons — mark this item as a link's source or target.
  * Picking both (even across two split-view panes, since the state is
  * shared) pops up a confirmation with a link-type picker, instead of
  * requiring the full detail panel + knowing the other item's key. */
 export default function LinkEndpointButtons({ item }: { item: LinkEndpoint }) {
+  const t = useT()
   const { source, target, pickSource, pickTarget } = useLinkCreation()
   const isSource = source?.id === item.id
   const isTarget = target?.id === item.id
@@ -12,7 +14,7 @@ export default function LinkEndpointButtons({ item }: { item: LinkEndpoint }) {
   return (
     <span className="flex shrink-0 items-center gap-0.5">
       <button
-        title="Mark as link source"
+        title={t('Mark as link source')}
         onClick={(e) => {
           e.stopPropagation()
           pickSource(item)
@@ -24,7 +26,7 @@ export default function LinkEndpointButtons({ item }: { item: LinkEndpoint }) {
         •→
       </button>
       <button
-        title="Mark as link target"
+        title={t('Mark as link target')}
         onClick={(e) => {
           e.stopPropagation()
           pickTarget(item)

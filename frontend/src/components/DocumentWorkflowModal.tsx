@@ -9,6 +9,7 @@ import {
   useRevokeWorkflowRole,
   useWorkflowRoles,
 } from '../api/hooks'
+import { useT } from '../i18n'
 
 interface Props {
   documentId: string
@@ -23,6 +24,8 @@ interface Props {
  * authority, distinct from the project-wide RBAC "reviewer" role which only
  * gates read access. */
 export default function DocumentWorkflowModal({ documentId, documentName, orgId, onClose }: Props) {
+  const t = useT()
+  const tx = t
   const { data: roles } = useWorkflowRoles(documentId)
   const { data: users } = useOrgUsers(orgId)
   const assignRole = useAssignWorkflowRole(documentId)
@@ -67,7 +70,7 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
       { user_id: userId, role },
       {
         onSuccess: () => setUserId(''),
-        onError: (err) => setError(apiErrorMessage(err, 'Could not assign this role.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not assign this role.'))),
       },
     )
   }
@@ -82,7 +85,7 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
           setConfirmingBulk(false)
           setPassword('')
         },
-        onError: (err) => setError(apiErrorMessage(err, 'Could not run this transition.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not run this transition.'))),
       },
     )
   }
@@ -97,28 +100,26 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-800">Workflow — {documentName}</h2>
-          <button onClick={onClose} title="Close" className="text-slate-400 hover:text-slate-700">
+          <h2 className="text-sm font-semibold text-slate-800">{t('Review & approval — {name}', { name: documentName })}</h2>
+          <button onClick={onClose} title={t('Close')} className="text-slate-400 hover:text-slate-700">
             ✕
           </button>
         </div>
 
         <div className="flex-1 overflow-auto p-4">
           <p className="mb-4 text-xs text-slate-500">
-            Reviewers and approvers assigned here are notified when an item is submitted for
-            review, and workflow transitions restricted to approvers (e.g. "Approve") can only be
-            run by an assigned approver or a project admin.
+            {t('Reviewers and approvers assigned here are notified when an item is submitted for review, and workflow transitions restricted to approvers (e.g. “Approve”) can only be run by an assigned approver or a project admin.')}
           </p>
 
           <div className="mb-4 flex items-end gap-2 rounded-md bg-slate-50 p-3">
             <div className="flex-1">
-              <label className="mb-1 block text-xs font-medium text-slate-500">User</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500">{t('User')}</label>
               <select
                 className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
               >
-                <option value="">Select a user…</option>
+                <option value="">{t('Select a user…')}</option>
                 {(users ?? []).map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.display_name} ({u.username}){!u.email ? ' — no email on file' : ''}
@@ -127,14 +128,14 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">Role</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500">{t('Role')}</label>
               <select
                 className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
                 value={role}
                 onChange={(e) => setRole(e.target.value as 'reviewer' | 'approver')}
               >
-                <option value="approver">Approver</option>
-                <option value="reviewer">Reviewer</option>
+                <option value="approver">{t('Approver')}</option>
+                <option value="reviewer">{t('Reviewer')}</option>
               </select>
             </div>
             <button
@@ -142,7 +143,7 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
               disabled={!userId || assignRole.isPending}
               className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              Assign
+              {t('Assign')}
             </button>
           </div>
           {error && <p className="mb-3 text-xs text-red-600">{error}</p>}
@@ -150,7 +151,7 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
           <div className="mb-4 grid grid-cols-2 gap-3">
             <div>
               <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Approvers
+                {t('Approvers')}
               </h3>
               <ul className="space-y-1">
                 {approvers.map((r) => (
@@ -162,18 +163,18 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
                     <button
                       onClick={() => revokeRole.mutate(r.id)}
                       className="text-slate-400 hover:text-red-600"
-                      title="Revoke"
+                      title={t('Revoke')}
                     >
                       ✕
                     </button>
                   </li>
                 ))}
-                {approvers.length === 0 && <li className="text-xs text-slate-400">None assigned yet.</li>}
+                {approvers.length === 0 && <li className="text-xs text-slate-400">{t('None assigned yet.')}</li>}
               </ul>
             </div>
             <div>
               <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Reviewers
+                {t('Reviewers')}
               </h3>
               <ul className="space-y-1">
                 {reviewers.map((r) => (
@@ -185,25 +186,23 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
                     <button
                       onClick={() => revokeRole.mutate(r.id)}
                       className="text-slate-400 hover:text-red-600"
-                      title="Revoke"
+                      title={t('Revoke')}
                     >
                       ✕
                     </button>
                   </li>
                 ))}
-                {reviewers.length === 0 && <li className="text-xs text-slate-400">None assigned yet.</li>}
+                {reviewers.length === 0 && <li className="text-xs text-slate-400">{t('None assigned yet.')}</li>}
               </ul>
             </div>
           </div>
 
           <div className="border-t border-slate-200 pt-4">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Run a transition on the whole document
+              {t('Run a transition on the whole document')}
             </h3>
             <p className="mb-2 text-xs text-slate-500">
-              Applies the transition to every item in this document where it is currently possible (e.g. approve
-              everything that is In Review). Each item is checked individually — roles, conditions and signatures
-              still apply.
+              {t('Applies the transition to every item in this document where it is currently possible (e.g. approve everything that is In Review). Each item is checked individually — roles, conditions and signatures still apply.')}
             </p>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -214,13 +213,13 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
                 >
                   {transitionOptions.map(([key, t]) => (
                     <option key={key} value={key}>
-                      {t.label}
+                      {tx(t.label)}
                     </option>
                   ))}
                 </select>
                 <input
                   className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                  placeholder={selected?.comment ? 'Justification (required)…' : 'Comment (optional)…'}
+                  placeholder={selected?.comment ? t('Justification (required)…') : t('Comment (optional)…')}
                   value={bulkComment}
                   onChange={(e) => setBulkComment(e.target.value)}
                 />
@@ -229,7 +228,7 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
                 <input
                   type="password"
                   className="w-full rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-sm"
-                  placeholder="Electronic signature — your password"
+                  placeholder={t('Electronic signature — your password')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -240,7 +239,7 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
                   disabled={!selected || (selected.comment && !bulkComment.trim())}
                   className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                 >
-                  {selected?.label ?? 'Run'} — all eligible items
+                  {t('{action} — all eligible items', { action: tx(selected?.label ?? 'Run') })}
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
@@ -249,10 +248,10 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
                     disabled={bulk.isPending}
                     className="rounded-md bg-green-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50"
                   >
-                    Confirm
+                    {t('Confirm')}
                   </button>
                   <button onClick={() => setConfirmingBulk(false)} className="text-sm text-slate-400 hover:text-slate-700">
-                    Cancel
+                    {t('Cancel')}
                   </button>
                 </div>
               )}
@@ -260,7 +259,7 @@ export default function DocumentWorkflowModal({ documentId, documentName, orgId,
             {bulkResult && (
               <div className="mt-2 text-xs">
                 <p className="text-green-700">
-                  Done for {bulkResult.applied.length} item(s)
+                  {t('Done for {n} item(s)', { n: bulkResult.applied.length })}
                   {bulkResult.applied.length > 0 && ': ' + bulkResult.applied.join(', ')}.
                 </p>
                 {bulkResult.skipped.length > 0 && (

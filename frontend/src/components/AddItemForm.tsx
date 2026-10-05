@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { apiErrorMessage } from '../api/client'
 import { useCreateItem } from '../api/hooks'
 import type { ItemType } from '../api/types'
+import { useT } from '../i18n'
 
 interface Props {
   documentId: string
@@ -25,6 +26,7 @@ export default function AddItemForm({
   order,
   onBeforeCreate,
 }: Props) {
+  const t = useT()
   const createItem = useCreateItem(documentId)
   const [itemTypeId, setItemTypeId] = useState(itemTypes[0]?.id ?? '')
   const [title, setTitle] = useState('')
@@ -41,7 +43,7 @@ export default function AddItemForm({
       await createItem.mutateAsync({ item_type_id: itemTypeId, parent_id: parentId, title, order })
       onDone()
     } catch (err) {
-      setError(apiErrorMessage(err, 'Could not create this item.'))
+      setError(apiErrorMessage(err, t('Could not create this item.')))
     } finally {
       setSubmitting(false)
     }
@@ -66,7 +68,7 @@ export default function AddItemForm({
       <input
         autoFocus
         className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs"
-        placeholder="Title…"
+        placeholder={t('Title…')}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
@@ -75,10 +77,10 @@ export default function AddItemForm({
         disabled={submitting}
         className="rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        Add
+        {t('Add')}
       </button>
       <button type="button" onClick={onDone} className="text-xs text-slate-400 hover:text-slate-700">
-        Cancel
+        {t('Cancel')}
       </button>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </form>

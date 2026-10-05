@@ -241,7 +241,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
     setError(null)
     updateView.mutate(
       { id: activeView.id, payload: { columns } },
-      { onError: (err) => setError(apiErrorMessage(err, 'Could not save this view.')) },
+      { onError: (err) => setError(apiErrorMessage(err, t('Could not save this view.'))) },
     )
   }
 
@@ -255,12 +255,12 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
           setViewId(v.id)
           setNewViewName(null)
         },
-        onError: (err) => setError(apiErrorMessage(err, 'Could not create this view.')),
+        onError: (err) => setError(apiErrorMessage(err, t('Could not create this view.'))),
       },
     )
   }
 
-  if (isLoading) return <div className={compact ? 'p-3 text-sm text-slate-500' : 'p-6 text-slate-500'}>Loading table…</div>
+  if (isLoading) return <div className={compact ? 'p-3 text-sm text-slate-500' : 'p-6 text-slate-500'}>{t('Loading table…')}</div>
 
   const visibleItems = (items ?? []).filter((item) => {
     if (matchingTypeIds && !matchingTypeIds.includes(item.item_type_id)) return false
@@ -300,7 +300,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
     if (editText === original) return
     updateItem.mutate(
       { id: item.id, payload: { [field]: editText }, etag: item.etag },
-      { onError: (err) => setEditError(apiErrorMessage(err, 'Could not save this change.')) },
+      { onError: (err) => setEditError(apiErrorMessage(err, t('Could not save this change.'))) },
     )
   }
 
@@ -336,11 +336,11 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
         {(activeType || typeQuery) && (
           <div className="mb-3 flex flex-wrap items-center gap-2">
             {typeQuery && matchingTypeIds && matchingTypeIds.length === 0 && (
-              <span className="text-xs text-amber-600">No item type matches "{typeQuery}"</span>
+              <span className="text-xs text-amber-600">{t('No item type matches “{q}”', { q: typeQuery })}</span>
             )}
             {typeQuery && matchingTypeIds && matchingTypeIds.length > 1 && (
               <span className="text-xs text-amber-600">
-                "{typeQuery}" matches several types — narrow it down to customize columns
+                {t('“{q}” matches several types — narrow it down to customize columns', { q: typeQuery })}
               </span>
             )}
 
@@ -350,7 +350,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                 value={viewId}
                 onChange={(e) => selectView(e.target.value)}
               >
-                <option value="">Default columns</option>
+                <option value="">{t('Default columns')}</option>
                 {viewsForType.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
@@ -377,7 +377,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
           <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Columns
+                {t('Columns')}
               </span>
               <div className="flex gap-2">
                 {activeView && isDirty && (
@@ -385,7 +385,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                     onClick={saveChanges}
                     className="rounded-md bg-slate-700 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800"
                   >
-                    Save changes
+                    {t('Save changes')}
                   </button>
                 )}
                 {isDirty && newViewName === null && (
@@ -393,7 +393,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                     onClick={() => setNewViewName('')}
                     className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
                   >
-                    Save as new view
+                    {t('Save as new view')}
                   </button>
                 )}
                 {activeView && (
@@ -404,7 +404,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                     }}
                     className="rounded-md px-2 py-1 text-xs text-slate-400 hover:text-red-600"
                   >
-                    Delete view
+                    {t('Delete view')}
                   </button>
                 )}
               </div>
@@ -421,7 +421,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                 <input
                   autoFocus
                   className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs"
-                  placeholder="View name…"
+                  placeholder={t('View name…')}
                   value={newViewName}
                   onChange={(e) => setNewViewName(e.target.value)}
                 />
@@ -429,23 +429,23 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                   className="rounded-md border border-slate-300 px-1.5 py-1 text-xs"
                   value={newViewScope}
                   onChange={(e) => setNewViewScope(e.target.value as 'personal' | 'shared')}
-                  title="Shared views are visible to everyone on the project; personal views are just for you"
+                  title={t('Shared views are visible to everyone on the project; personal views are just for you')}
                 >
-                  <option value="shared">Shared</option>
-                  <option value="personal">Personal</option>
+                  <option value="shared">{t('Shared')}</option>
+                  <option value="personal">{t('Personal')}</option>
                 </select>
                 <button
                   type="submit"
                   className="rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
                 >
-                  Save
+                  {t('Save')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setNewViewName(null)}
                   className="text-xs text-slate-400 hover:text-slate-700"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
               </form>
             )}
@@ -489,8 +489,8 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase text-slate-500">
               <tr>
-                <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">Key</th>
-                <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">Title</th>
+                <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">{t('Key')}</th>
+                <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">{t('Title')}</th>
                 {orderedColumns.length > 0 ? (
                   orderedColumns.map((c) => (
                     <th key={c.id} className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">
@@ -498,9 +498,9 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                     </th>
                   ))
                 ) : (
-                  <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">Description</th>
+                  <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">{t('Description')}</th>
                 )}
-                <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">Links</th>
+                <th className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2">{t('Links')}</th>
                 <th className="sticky top-0 z-10 w-24 border-b border-slate-200 bg-slate-50 px-2 py-2" />
               </tr>
             </thead>
@@ -566,7 +566,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                               : undefined
                           }
                         >
-                          <span className="truncate" title="Double-click to edit">
+                          <span className="truncate" title={t('Double-click to edit')}>
                             {isStructural && (
                               <span className="mr-2 text-slate-400">{item.number}</span>
                             )}
@@ -587,7 +587,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                                 if (!editMode) return
                                 setSelectedId(item.id)
                                 if (c.key === 'status' && item.has_workflow) {
-                                  setEditError('Status follows the workflow — use the transitions in the item details.')
+                                  setEditError(t('Status follows the workflow — use the transitions in the item details.'))
                                   return
                                 }
                                 if (item.read_only_reason) {
@@ -619,7 +619,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                                         },
                                         {
                                           onError: (err) =>
-                                            setEditError(apiErrorMessage(err, 'Could not save this change.')),
+                                            setEditError(apiErrorMessage(err, t('Could not save this change.'))),
                                         },
                                       )
                                     }
@@ -627,7 +627,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                                   {editError && <p className="mt-1 text-xs text-red-600">⚠ {editError}</p>}
                                 </div>
                               ) : (
-                                <span title="Double-click to edit">{renderAttributeValue(item, c.key)}</span>
+                                <span title={t('Double-click to edit')}>{renderAttributeValue(item, c.key)}</span>
                               )}
                             </td>
                           ))
@@ -657,7 +657,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                                 {editError && <p className="mt-1 text-xs text-red-600">⚠ {editError}</p>}
                               </>
                             ) : (
-                              <span title="Double-click to edit">
+                              <span title={t('Double-click to edit')}>
                                 {stripMarkdown(item.description_md).slice(0, 140)}
                               </span>
                             )}
@@ -692,10 +692,10 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
                                 e.stopPropagation()
                                 openDetails(item.id)
                               }}
-                              title="Show details"
+                              title={t('Show details')}
                               className="shrink-0 rounded px-1.5 text-xs text-slate-400 hover:bg-slate-200 hover:text-slate-700"
                             >
-                              Details ▸
+                              {t('Details ▸')}
                             </button>
                           </div>
                         </td>
@@ -707,7 +707,7 @@ export default function ProjectTableExplorer({ projectId, orgId, compact, editMo
               {visibleItems.length === 0 && (
                 <tr>
                   <td colSpan={5 + Math.max(orderedColumns.length, 1)} className="px-3 py-6 text-center text-slate-400">
-                    No items match this filter.
+                    {t('No items match this filter.')}
                   </td>
                 </tr>
               )}

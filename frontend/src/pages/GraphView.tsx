@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { useItemGraph, useItemTypes, useLinkTypes, useOrg, useProjectItems } from '../api/hooks'
 import type { GraphNode } from '../api/types'
 import ItemDetailPanel from '../components/ItemDetailPanel'
+import { useT } from '../i18n'
 
 const NODE_W = 180
 const NODE_H_COLLAPSED = 56
@@ -58,6 +59,7 @@ function wrapText(text: string, maxChars: number, maxLines: number): string[] {
 }
 
 export default function GraphView() {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const centerId = searchParams.get('center') ?? undefined
@@ -112,18 +114,17 @@ export default function GraphView() {
   return (
     <div className="flex h-full">
       <div className="flex-1 overflow-auto p-6">
-        <h1 className="mb-4 text-lg font-semibold text-slate-800">Traceability Graph</h1>
+        <h1 className="mb-4 text-lg font-semibold text-slate-800">{t('Traceability Graph')}</h1>
 
         {!centerId ? (
           <p className="text-sm text-slate-400">
-            Open an item's detail panel (Document View or Table View) and click "View Graph" to center
-            the graph on it.
+            {t("Open a requirement's details and choose “Graph” from the ⋯ menu to center the graph on it.")}
           </p>
         ) : (
           <>
             <div className="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-white p-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Up levels</label>
+                <label className="mb-1 block text-xs font-medium text-slate-500">{t('Up levels')}</label>
                 <select
                   className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
                   value={depthUp}
@@ -139,7 +140,7 @@ export default function GraphView() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Down levels</label>
+                <label className="mb-1 block text-xs font-medium text-slate-500">{t('Down levels')}</label>
                 <select
                   className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
                   value={depthDown}
@@ -160,15 +161,15 @@ export default function GraphView() {
                   checked={showDescriptions}
                   onChange={(e) => setShowDescriptions(e.target.checked)}
                 />
-                Show description in nodes
+                {t('Show description in nodes')}
               </label>
               <p className="text-xs text-slate-400">
-                Click a node to see its details · double-click to re-center the graph on it
+                {t('Click a node to see its details · double-click to re-center the graph on it')}
               </p>
             </div>
 
             {isLoading || !graph || !layout ? (
-              <p className="text-sm text-slate-400">Loading graph…</p>
+              <p className="text-sm text-slate-400">{t('Loading graph…')}</p>
             ) : (
               <div className="overflow-auto rounded-lg border border-slate-200 bg-white p-8">
                 <svg

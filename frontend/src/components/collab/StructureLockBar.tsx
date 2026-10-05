@@ -3,12 +3,14 @@ import { apiErrorMessage } from '../../api/client'
 import { can, usePermissions, useStructureLock, useStructureLockActions } from '../../api/collabHooks'
 import { useParams } from 'react-router-dom'
 import { sinceText } from './useEditSession'
+import { useT } from '../../i18n'
 
 /** The document's structure lock (order/hierarchy), separate from item
  * content locks. Toolbar moves take a short implicit lease automatically;
  * "Reorganize" takes an explicit lock for a longer restructuring session
  * (and blocks others from adding items meanwhile). */
 export default function StructureLockBar({ documentId }: { documentId: string }) {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const { data: perms } = usePermissions(projectId)
   const { data } = useStructureLock(documentId)
@@ -33,7 +35,7 @@ export default function StructureLockBar({ documentId }: { documentId: string })
     try {
       await fn()
     } catch (err) {
-      setError(apiErrorMessage(err, 'That did not work.'))
+      setError(apiErrorMessage(err, t('That did not work.')))
     }
   }
 
@@ -41,9 +43,10 @@ export default function StructureLockBar({ documentId }: { documentId: string })
     <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
       {otherHolds && lock && (
         <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-800">
-          ⇅ {lock.user_name} is {lock.implicit ? 'moving items' : 'reorganizing this document'} (
-          {sinceText(lock.acquired_at)}) — structure changes are blocked for you
-          {lock.implicit ? ' for a moment.' : '.'}
+          ⇅ {lock.user_name}{' '}
+          {lock.implicit
+            ? t('is moving items ({since}) — structure changes are blocked for you for a moment.', { since: sinceText(lock.acquired_at) })
+            : t('is reorganizing this document ({since}) — structure changes are blocked for you.', { since: sinceText(lock.acquired_at) })}
         </span>
       )}
       {mineExplicit ? (
@@ -51,22 +54,22 @@ export default function StructureLockBar({ documentId }: { documentId: string })
           className="rounded-md bg-amber-500 px-2 py-1 font-medium text-white hover:bg-amber-600"
           onClick={() => run(actions.release)}
         >
-          ⇅ Done reorganizing
+          ⇅ {t('Done reorganizing')}
         </button>
       ) : (
         !otherHolds && (
           <button
             className="rounded-md border border-slate-200 px-2 py-1 text-slate-500 hover:bg-slate-100"
-            title="Lock the document structure while you reorganize it (others can still edit item text)"
+            title={t('Lock the document structure while you reorganize it (others can still edit item text)')}
             onClick={() => run(actions.acquire)}
           >
-            ⇅ Reorganize…
+            ⇅ {t('Reorganize…')}
           </button>
         )
       )}
       {otherHolds && data?.can_override && (
         <button className="text-slate-500 hover:text-red-600" onClick={() => run(() => actions.override(false))}>
-          Release their structure lock
+          {t('Release their structure lock')}
         </button>
       )}
       {error && <span className="text-red-600">⚠ {error}</span>}

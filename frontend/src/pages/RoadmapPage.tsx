@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../auth/AuthContext'
 import Modal, { btn, input } from '../components/collab/Modal'
 import StatusBadge from '../components/collab/StatusBadge'
+import { useT } from '../i18n'
 
 const HORIZON_LABEL: Record<string, string> = { now: 'Now', next: 'Soon', later: 'Later' }
 
@@ -24,6 +25,7 @@ export function IdeaStatusBadge({ idea, small }: { idea: Pick<Idea, 'status' | '
 }
 
 export function VoteButton({ idea }: { idea: Idea }) {
+  const t = useT()
   const action = useRoadmapAction()
   const closed = ['duplicate', 'declined', 'released'].includes(idea.status)
   return (
@@ -34,7 +36,7 @@ export function VoteButton({ idea }: { idea: Idea }) {
         action.mutate({ method: idea.voted ? 'delete' : 'post', path: `/ideas/${idea.id}/vote` })
       }}
       disabled={closed || action.isPending}
-      title={closed ? 'Voting closed' : idea.voted ? 'Remove your vote' : 'Vote for this idea'}
+      title={closed ? t('Voting closed') : idea.voted ? t('Remove your vote') : t('Vote for this idea')}
       className={`flex w-12 shrink-0 flex-col items-center rounded-md border py-1 text-xs font-semibold ${
         idea.voted ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300'
       } disabled:cursor-not-allowed disabled:opacity-60`}
@@ -46,32 +48,33 @@ export function VoteButton({ idea }: { idea: Idea }) {
 }
 
 export default function RoadmapPage() {
+  const t = useT()
   const { user } = useAuth()
   const [params, setParams] = useSearchParams()
   const tab = (params.get('tab') as 'roadmap' | 'ideas' | 'releases') ?? 'roadmap'
   const [submitting, setSubmitting] = useState(false)
   const setTab = (t: string) => setParams({ tab: t }, { replace: true })
 
-  if (!user) return <div className="p-8 text-sm text-slate-500">Sign in to see the roadmap and suggest improvements.</div>
+  if (!user) return <div className="p-8 text-sm text-slate-500">{t('Sign in to see the roadmap and suggest improvements.')}</div>
 
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Roadmap</h1>
+          <h1 className="text-2xl font-semibold text-slate-800">{t('Roadmap')}</h1>
           <p className="text-sm text-slate-500">
-            Suggest improvements to RMT, vote for the ones you need, and follow what happens to them.
+            {t('Suggest improvements to RMT, vote for the ones you need, and follow what happens to them.')}
           </p>
         </div>
         <button className={btn.primary} onClick={() => setSubmitting(true)}>
-          + Suggest an idea
+          + {t('Suggest an idea')}
         </button>
       </div>
       <div className="mb-4 flex gap-1 border-b border-slate-200 text-sm">
         {[
-          ['roadmap', 'Roadmap'],
-          ['ideas', 'All ideas'],
-          ['releases', 'Release notes'],
+          ['roadmap', t('Roadmap')],
+          ['ideas', t('All ideas')],
+          ['releases', t('Release notes')],
         ].map(([k, l]) => (
           <button
             key={k}
@@ -93,10 +96,11 @@ export default function RoadmapPage() {
 }
 
 function CategoryFilter({ value, onChange }: { value?: string; onChange: (v?: string) => void }) {
+  const t = useT()
   const { data: meta } = useRoadmapMeta()
   return (
     <select className="rounded-md border border-slate-300 px-2 py-1 text-xs" value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)}>
-      <option value="">All categories</option>
+      <option value="">{t('All categories')}</option>
       {(meta?.categories ?? []).map((c) => (
         <option key={c}>{c}</option>
       ))}
@@ -105,12 +109,13 @@ function CategoryFilter({ value, onChange }: { value?: string; onChange: (v?: st
 }
 
 function Board() {
+  const t = useT()
   const [category, setCategory] = useState<string>()
   const { data: board } = useRoadmapBoard(category)
   const columns: [keyof NonNullable<typeof board>, string][] = [
-    ['planned', 'Planned'],
-    ['in_progress', 'In progress'],
-    ['released', 'Released'],
+    ['planned', t('Planned')],
+    ['in_progress', t('In progress')],
+    ['released', t('Released')],
   ]
   return (
     <div>
@@ -133,7 +138,7 @@ function Board() {
                   <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
                     <span className="font-mono">{idea.key}</span>
                     {idea.horizon && key !== 'released' && (
-                      <span className="rounded bg-slate-800 px-1.5 py-0.5 font-semibold text-white">{HORIZON_LABEL[idea.horizon]}</span>
+                      <span className="rounded bg-slate-800 px-1.5 py-0.5 font-semibold text-white">{t(HORIZON_LABEL[idea.horizon] ?? idea.horizon)}</span>
                     )}
                     {idea.release && <span className="rounded bg-green-50 px-1.5 text-green-700">v{idea.release.version}</span>}
                     <span className="ml-auto">{idea.category}</span>
@@ -145,7 +150,7 @@ function Board() {
                   </div>
                 </Link>
               ))}
-              {(board?.[key] ?? []).length === 0 && <p className="px-1 py-4 text-center text-xs text-slate-400">Nothing here yet.</p>}
+              {(board?.[key] ?? []).length === 0 && <p className="px-1 py-4 text-center text-xs text-slate-400">{t('Nothing here yet.')}</p>}
             </div>
           </section>
         ))}
@@ -155,6 +160,7 @@ function Board() {
 }
 
 function IdeaList() {
+  const t = useT()
   const [filters, setFilters] = useState<IdeaFilters>({ sort: 'votes' })
   const [search, setSearch] = useState('')
   const { data } = useIdeas(filters)
@@ -195,13 +201,13 @@ function IdeaList() {
               set({ q: search.trim() || undefined })
             }}
           >
-            <input className={input} placeholder="Search ideas…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className={input} placeholder={t('Search ideas…')} value={search} onChange={(e) => setSearch(e.target.value)} />
           </form>
           <CategoryFilter value={filters.category} onChange={(category) => set({ category })} />
           <select className="rounded-md border border-slate-300 px-2 py-1 text-xs" value={filters.sort} onChange={(e) => set({ sort: e.target.value as IdeaFilters['sort'] })}>
-            <option value="votes">Most votes</option>
-            <option value="new">Newest</option>
-            <option value="updated">Recently updated</option>
+            <option value="votes">{t('Most votes')}</option>
+            <option value="new">{t('Newest')}</option>
+            <option value="updated">{t('Recently updated')}</option>
           </select>
         </div>
         <ul className="space-y-2">
@@ -225,7 +231,7 @@ function IdeaList() {
               </Link>
             </li>
           ))}
-          {(data?.items ?? []).length === 0 && <li className="py-8 text-center text-sm text-slate-400">No ideas match.</li>}
+          {(data?.items ?? []).length === 0 && <li className="py-8 text-center text-sm text-slate-400">{t('No ideas match.')}</li>}
         </ul>
       </div>
     </div>
@@ -233,6 +239,7 @@ function IdeaList() {
 }
 
 function ReleaseNotes() {
+  const t = useT()
   const { data: notes } = useReleaseNotes()
   const { data: meta } = useRoadmapMeta()
   const action = useRoadmapAction()
@@ -243,9 +250,9 @@ function ReleaseNotes() {
     <div className="space-y-3">
       {meta?.can_manage && (
         <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3">
-          <input className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm" placeholder="Version" value={version} onChange={(e) => setVersion(e.target.value)} />
-          <input className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <textarea className={input} rows={2} placeholder="What changed" value={body} onChange={(e) => setBody(e.target.value)} />
+          <input className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm" placeholder={t('Version')} value={version} onChange={(e) => setVersion(e.target.value)} />
+          <input className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm" placeholder={t('Title')} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <textarea className={input} rows={2} placeholder={t('What changed')} value={body} onChange={(e) => setBody(e.target.value)} />
           <button
             className={btn.primary}
             disabled={!version.trim() || !title.trim()}
@@ -256,7 +263,7 @@ function ReleaseNotes() {
               )
             }
           >
-            Publish release note
+            {t('Publish release note')}
           </button>
         </div>
       )}
@@ -283,18 +290,19 @@ function ReleaseNotes() {
           )}
         </article>
       ))}
-      {(notes ?? []).length === 0 && <p className="py-8 text-center text-sm text-slate-400">No release notes yet.</p>}
+      {(notes ?? []).length === 0 && <p className="py-8 text-center text-sm text-slate-400">{t('No release notes yet.')}</p>}
     </div>
   )
 }
 
 function SubmitIdea({ onClose }: { onClose: () => void }) {
+  const t = useT()
   const navigate = useNavigate()
   const { data: meta } = useRoadmapMeta()
   const action = useRoadmapAction()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('Usability')
+  const [category, setCategory] = useState(t('Usability'))
   const [error, setError] = useState<string | null>(null)
   const [debounced, setDebounced] = useState('')
   const { data: similar } = useSimilarIdeas(debounced)
@@ -307,12 +315,12 @@ function SubmitIdea({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       wide
-      title="Suggest an improvement"
+      title={t('Suggest an improvement')}
       onClose={onClose}
       footer={
         <>
           <button className={btn.secondary} onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             className={btn.primary}
@@ -322,12 +330,12 @@ function SubmitIdea({ onClose }: { onClose: () => void }) {
                 { method: 'post', path: '/ideas', body: { title, description, category } },
                 {
                   onSuccess: (idea) => navigate(`/roadmap/ideas/${(idea as Idea).id}`),
-                  onError: (e) => setError(apiErrorMessage(e, 'Could not submit.')),
+                  onError: (e) => setError(apiErrorMessage(e, t('Could not submit.'))),
                 },
               )
             }
           >
-            Submit idea
+            {t('Submit idea')}
           </button>
         </>
       }
@@ -336,14 +344,14 @@ function SubmitIdea({ onClose }: { onClose: () => void }) {
         <input
           autoFocus
           className={input}
-          placeholder="Short title, e.g. “Bulk-edit attributes in table view”"
+          placeholder={t('Short title, e.g. “Bulk-edit attributes in table view”')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         {(similar ?? []).length > 0 && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
             <p className="mb-1 text-xs font-medium text-amber-800">
-              Similar ideas already exist — consider voting for one of them instead:
+              {t('Similar ideas already exist — consider voting for one of them instead:')}
             </p>
             <ul className="space-y-1">
               {similar!.map((i) => (
@@ -358,15 +366,14 @@ function SubmitIdea({ onClose }: { onClose: () => void }) {
             </ul>
           </div>
         )}
-        <textarea className={input} rows={5} placeholder="What problem would this solve? How do you work around it today?" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea className={input} rows={5} placeholder={t('What problem would this solve? How do you work around it today?')} value={description} onChange={(e) => setDescription(e.target.value)} />
         <select className={input} value={category} onChange={(e) => setCategory(e.target.value)}>
           {(meta?.categories ?? []).map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
         <p className="text-[11px] text-slate-400">
-          Ideas are visible to all users of RMT; your organization's name is hidden from other organizations. You'll be
-          notified about every status change.
+          {t("Ideas are visible to all users of RMT; your organization's name is hidden from other organizations. You'll be notified about every status change.")}
         </p>
         {error && <p className="text-xs text-red-600">⚠ {error}</p>}
       </div>

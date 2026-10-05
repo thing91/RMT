@@ -76,7 +76,7 @@ export default function AuthBar() {
                 </div>
                 <div className="border-t border-slate-100 pt-1">
                   <Link to="/glossary" className={item} onClick={() => setOpen(false)}>
-                    {lang === 'pl' ? 'Słownik pojęć' : 'Glossary'}
+                    {t('Glossary')}
                   </Link>
                   <Link to="/roadmap" className={item} onClick={() => setOpen(false)}>
                     {t('Ideas & roadmap')}

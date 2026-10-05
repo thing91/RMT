@@ -11,11 +11,14 @@ import {
 import { useItemTypes, useOrg } from '../api/hooks'
 import WorkflowEditor from '../components/collab/WorkflowEditor'
 import { btn } from '../components/collab/Modal'
+import { useT } from '../i18n'
 
 /** Org-wide workflows per content item type (at /admin/workflows), or a
  * project's effective workflows with per-project overrides (at
  * /projects/:id/workflows). */
 export default function WorkflowsAdmin() {
+  const t = useT()
+  const tx = t
   const { projectId } = useParams<{ projectId?: string }>()
   const { org } = useOrg()
   const { data: itemTypes } = useItemTypes(org?.id)
@@ -35,17 +38,18 @@ export default function WorkflowsAdmin() {
   return (
     <div className="mx-auto max-w-5xl p-6">
       <h1 className="mb-1 text-lg font-semibold text-slate-800">
-        {projectId ? 'Project workflows' : 'Workflows'}
+        {projectId ? t('Project workflows') : t('Workflows')}
       </h1>
       <p className="mb-4 text-sm text-slate-500">
         {projectId
-          ? 'The workflow each item type follows in this project. Override one to differ from the organization default.'
-          : 'Organization-wide default workflow per item type. Projects can override them. Reference templates: Basic, Change-managed (default) and Regulated (signatures, separation of duties, test-linked verification).'}
+          ? t('The workflow each item type follows in this project. Override one to differ from the organization default.')
+          : t('Organization-wide default workflow per item type. Projects can override them. Reference templates: Basic, Change-managed (default) and Regulated (signatures, separation of duties, test-linked verification).')}
       </p>
       {!canEdit && (
         <p className="mb-4 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-500">
-          Read-only — changing {projectId ? 'project' : 'organization'} workflows requires the{' '}
-          {projectId ? 'workflow.configure' : 'organization admin'} permission.
+          {projectId
+            ? t('Read-only — changing project workflows requires the “workflow.configure” permission.')
+            : t('Read-only — only an organization admin can change organization workflows.')}
         </p>
       )}
       <div className="flex gap-4">
@@ -62,8 +66,8 @@ export default function WorkflowsAdmin() {
               >
                 {t.name}
                 <span className="block text-[11px] text-slate-400">
-                  {d ? d.name : 'no workflow'}
-                  {d?.is_override && ' · project override'}
+                  {d ? d.name : tx('no workflow')}
+                  {d?.is_override && ` · ${tx('project override')}`}
                 </span>
               </button>
             )
@@ -82,13 +86,13 @@ export default function WorkflowsAdmin() {
                     className={btn.ghost}
                     onClick={() => removeOverride.mutate({ itemTypeId: active, projectId })}
                   >
-                    Remove override (use org default)
+                    {t('Remove override (use org default)')}
                   </button>
                 ) : null
               }
             />
           )}
-          {!definition && <p className="text-sm text-slate-400">This item type has no workflow yet.</p>}
+          {!definition && <p className="text-sm text-slate-400">{t('This item type has no workflow yet.')}</p>}
         </section>
       </div>
     </div>

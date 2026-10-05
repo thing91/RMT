@@ -1,6 +1,7 @@
 import { NavLink, useParams } from 'react-router-dom'
 import { useDocumentTree, useItemTypes } from '../api/hooks'
 import type { Item } from '../api/types'
+import { useT } from '../i18n'
 
 /** Walks the nested tree keeping only structural items (sections), with
  * `depth` counting ancestor *sections* only — a content item in between
@@ -18,19 +19,20 @@ function flattenSections(
 }
 
 export default function DocumentToc({ documentId, orgId }: { documentId: string; orgId: string }) {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const { data: tree, isLoading } = useDocumentTree(documentId)
   const { data: itemTypes } = useItemTypes(orgId)
 
   if (isLoading || !itemTypes) {
-    return <p className="px-3 py-2 text-xs text-slate-400">Loading…</p>
+    return <p className="px-3 py-2 text-xs text-slate-400">{t('Loading…')}</p>
   }
 
   const structuralTypeIds = new Set(itemTypes.filter((t) => t.behavior === 'structural').map((t) => t.id))
   const sections = tree ? flattenSections(tree, (id) => structuralTypeIds.has(id)) : []
 
   if (sections.length === 0) {
-    return <p className="px-3 py-2 text-xs text-slate-400">No sections yet.</p>
+    return <p className="px-3 py-2 text-xs text-slate-400">{t('No sections yet.')}</p>
   }
 
   // Always the Document View (it scrolls to and highlights the section) —

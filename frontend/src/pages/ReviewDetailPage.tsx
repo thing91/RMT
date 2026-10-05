@@ -8,6 +8,7 @@ import Modal, { btn, input } from '../components/collab/Modal'
 import StatusBadge from '../components/collab/StatusBadge'
 import { SuggestionStatus } from '../components/collab/SuggestionsPanel'
 import { suggestionsExportUrl } from '../api/collabHooks'
+import { useT } from '../i18n'
 
 const VOTE_LABEL: Record<string, string> = {
   approve: '✓ Approve',
@@ -16,6 +17,7 @@ const VOTE_LABEL: Record<string, string> = {
 }
 
 export default function ReviewDetailPage() {
+  const t = useT()
   const { projectId, reviewId } = useParams<{ projectId: string; reviewId: string }>()
   const { data: review, isLoading } = useReview(reviewId)
   const { data: suggestions } = useProjectSuggestions(projectId, { review_id: reviewId })
@@ -25,7 +27,7 @@ export default function ReviewDetailPage() {
   const [voteComment, setVoteComment] = useState('')
   const [closing, setClosing] = useState(false)
 
-  if (isLoading || !review) return <div className="p-6 text-slate-500">Loading…</div>
+  if (isLoading || !review) return <div className="p-6 text-slate-500">{t('Loading…')}</div>
 
   async function run(path: string, body?: unknown, method: 'post' | 'delete' = 'post') {
     setError(null)
@@ -34,7 +36,7 @@ export default function ReviewDetailPage() {
       return true
     } catch (err) {
       const d = apiErrorDetail(err)
-      setError([d?.message ?? apiErrorMessage(err, 'That did not work.'), ...(d?.reasons ?? [])].join(' '))
+      setError([d?.message ?? apiErrorMessage(err, t('That did not work.')), ...(d?.reasons ?? [])].join(' '))
       return false
     }
   }
@@ -43,7 +45,7 @@ export default function ReviewDetailPage() {
   return (
     <div className="mx-auto max-w-5xl p-6">
       <Link to={`/projects/${projectId}/reviews`} className="text-xs text-slate-500 hover:text-blue-600">
-        ← Reviews
+        ← {t('Reviews')}
       </Link>
       <div className="mt-1 flex items-start justify-between gap-4">
         <div>
@@ -55,12 +57,12 @@ export default function ReviewDetailPage() {
               label={review.outcome ? `${review.status} — ${review.outcome}` : review.status}
               color={open ? '#2563eb' : review.status === 'closed' ? '#16a34a' : '#94a3b8'}
             />
-            opened by {review.created_by} on {new Date(review.created_at).toLocaleDateString()}
-            {review.due_date && <> · due {new Date(review.due_date).toLocaleDateString()}</>}
+            {t('opened by {name} on {date}', { name: review.created_by, date: new Date(review.created_at).toLocaleDateString() })}
+            {review.due_date && <> · {t('due {date}', { date: new Date(review.due_date).toLocaleDateString() })}</>}
             {review.closed_at && (
               <>
                 {' '}
-                · closed by {review.closed_by} on {new Date(review.closed_at).toLocaleDateString()}
+                · {t('closed by {name} on {date}', { name: review.closed_by, date: new Date(review.closed_at).toLocaleDateString() })}
               </>
             )}
           </div>
@@ -69,10 +71,10 @@ export default function ReviewDetailPage() {
         {open && review.can_manage && (
           <div className="flex shrink-0 gap-2">
             <button className={btn.secondary} onClick={() => run('/cancel')}>
-              Cancel review
+              {t('Cancel review')}
             </button>
             <button className={btn.primary} onClick={() => setClosing(true)}>
-              Close review…
+              {t('Close review…')}
             </button>
           </div>
         )}
@@ -107,7 +109,7 @@ export default function ReviewDetailPage() {
                   <td className="text-xs text-slate-500">{i.status}</td>
                   <td className="text-xs">
                     {i.changed_since ? (
-                      <span className="text-amber-700" title="Changed since it was put up for review">
+                      <span className="text-amber-700" title={t('Changed since it was put up for review')}>
                         v{i.reviewed_version} → v{i.current_version}
                       </span>
                     ) : (
@@ -122,7 +124,7 @@ export default function ReviewDetailPage() {
                       <button
                         className="text-xs text-slate-400 hover:text-red-600"
                         onClick={() => run(`/items/${i.item_id}`, undefined, 'delete')}
-                        title="Remove from review"
+                        title={t('Remove from review')}
                       >
                         ✕
                       </button>
@@ -144,14 +146,14 @@ export default function ReviewDetailPage() {
                 <div className="flex items-center justify-between">
                   <span>
                     {p.name}
-                    {!p.required && <span className="ml-1 text-xs text-slate-400">(optional)</span>}
+                    {!p.required && <span className="ml-1 text-xs text-slate-400">{t('(optional)')}</span>}
                   </span>
                   <span
                     className={`text-xs ${
                       p.vote === 'reject' ? 'text-red-600' : p.vote ? 'text-green-700' : 'text-slate-400'
                     }`}
                   >
-                    {p.vote ? VOTE_LABEL[p.vote] : 'pending'}
+                    {p.vote ? t(VOTE_LABEL[p.vote]) : t('pending')}
                   </span>
                 </div>
                 {p.vote_comment && <div className="text-xs italic text-slate-500">“{p.vote_comment}”</div>}
@@ -162,7 +164,7 @@ export default function ReviewDetailPage() {
           {open && review.i_am_participant && (
             <div className="mt-3 border-t border-slate-100 pt-3">
               <div className="mb-1 text-xs font-medium text-slate-500">
-                Your vote{review.my_vote && `: ${VOTE_LABEL[review.my_vote]}`}
+                {t('Your vote')}{review.my_vote && `: ${t(VOTE_LABEL[review.my_vote])}`}
               </div>
               <div className="flex flex-wrap gap-1">
                 {Object.entries(VOTE_LABEL).map(([v, l]) => (
@@ -173,7 +175,7 @@ export default function ReviewDetailPage() {
                       voting === v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-300 text-slate-600'
                     }`}
                   >
-                    {l}
+                    {t(l)}
                   </button>
                 ))}
               </div>
@@ -182,7 +184,7 @@ export default function ReviewDetailPage() {
                   <textarea
                     className={input}
                     rows={2}
-                    placeholder={voting === 'reject' ? 'Why? (required)' : 'Comment (optional)'}
+                    placeholder={voting === 'reject' ? 'Why? (required)' : t('Comment (optional)')}
                     value={voteComment}
                     onChange={(e) => setVoteComment(e.target.value)}
                   />
@@ -196,7 +198,7 @@ export default function ReviewDetailPage() {
                       }
                     }}
                   >
-                    Submit vote
+                    {t('Submit vote')}
                   </button>
                 </div>
               )}
@@ -208,7 +210,7 @@ export default function ReviewDetailPage() {
       <section className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Change suggestions / RIDs raised in this review ({(suggestions ?? []).length})
+            {t('Change suggestions raised in this review')} ({(suggestions ?? []).length})
           </h2>
           {projectId && (
             <a className={btn.ghost} href={suggestionsExportUrl(projectId, { review_id: reviewId })}>
@@ -241,7 +243,7 @@ export default function ReviewDetailPage() {
             {(suggestions ?? []).length === 0 && (
               <tr>
                 <td className="py-3 text-slate-400">
-                  None yet — reviewers raise them from an item's “Suggest change” button.
+                  {t('None yet — reviewers raise them from an item\'s “Suggest change” button.')}
                 </td>
               </tr>
             )}
@@ -255,6 +257,7 @@ export default function ReviewDetailPage() {
 }
 
 function AddParticipant({ review, run }: { review: ReviewDetail; run: (p: string, b?: unknown) => Promise<boolean> }) {
+  const t = useT()
   const { org } = useOrg()
   const { data: users } = useOrgUsers(org?.id)
   const [userId, setUserId] = useState('')
@@ -262,7 +265,7 @@ function AddParticipant({ review, run }: { review: ReviewDetail; run: (p: string
   return (
     <div className="mt-2 flex gap-1">
       <select className="flex-1 rounded-md border border-slate-300 px-1 py-0.5 text-xs" value={userId} onChange={(e) => setUserId(e.target.value)}>
-        <option value="">Add reviewer…</option>
+        <option value="">{t('Add reviewer…')}</option>
         {(users ?? [])
           .filter((u) => !existing.has(u.id))
           .map((u) => (
@@ -278,7 +281,7 @@ function AddParticipant({ review, run }: { review: ReviewDetail; run: (p: string
           if (await run('/participants', { user_id: userId, required: true })) setUserId('')
         }}
       >
-        Add
+        {t('Add')}
       </button>
     </div>
   )
@@ -293,6 +296,7 @@ function CloseReviewModal({
   run: (p: string, b?: unknown) => Promise<boolean>
   onClose: () => void
 }) {
+  const t = useT()
   const { projectId } = useParams<{ projectId: string }>()
   const { data: workflows } = useProjectWorkflows(projectId)
   const [outcome, setOutcome] = useState('approved')
@@ -313,7 +317,7 @@ function CloseReviewModal({
       footer={
         <>
           <button className={btn.secondary} onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             className={btn.primary}
@@ -328,25 +332,25 @@ function CloseReviewModal({
               if (ok) onClose()
             }}
           >
-            Close review
+            {t('Close review')}
           </button>
         </>
       }
     >
       <div className="space-y-3 text-sm">
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">Outcome</span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t('Outcome')}</span>
           <select className={input} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-            <option value="approved">Approved</option>
-            <option value="approved_with_changes">Approved with changes</option>
-            <option value="rejected">Rejected</option>
-            <option value="completed">Completed</option>
+            <option value="approved">{t('Approved')}</option>
+            <option value="approved_with_changes">{t('Approved with changes')}</option>
+            <option value="rejected">{t('Rejected')}</option>
+            <option value="completed">{t('Completed')}</option>
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">Also run on every reviewed item (optional)</span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t('Also run on every reviewed item (optional)')}</span>
           <select className={input} value={applyTransition} onChange={(e) => setApplyTransition(e.target.value)}>
-            <option value="">— nothing —</option>
+            <option value="">{t('— nothing —')}</option>
             {[...transitions.entries()].map(([k, t]) => (
               <option key={k} value={k}>
                 {t.label}
@@ -358,12 +362,12 @@ function CloseReviewModal({
           <input
             type="password"
             className={input}
-            placeholder="Electronic signature — your password"
+            placeholder={t('Electronic signature — your password')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         )}
-        <textarea className={input} rows={2} placeholder="Closing comment" value={comment} onChange={(e) => setComment(e.target.value)} />
+        <textarea className={input} rows={2} placeholder={t('Closing comment')} value={comment} onChange={(e) => setComment(e.target.value)} />
       </div>
     </Modal>
   )
